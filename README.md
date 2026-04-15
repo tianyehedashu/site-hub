@@ -1,24 +1,32 @@
-# ziniao-official-sites
+# site-hub
 
-Official site presets for [ziniao](https://github.com/tianyehedashu/ziniao) — JSON templates for automated web data fetching.
+Community-driven site presets & plugins for automated web data fetching.
+
+Each site directory contains JSON preset templates and an optional Python plugin (`__init__.py`).
 
 ## Directory layout
 
 ```
-<site>/<action>.json
+<site>/
+  <action>.json      # Preset template (URL, headers, vars, pagination, auth …)
+  __init__.py        # Optional SitePlugin for complex logic
 ```
 
-Each JSON file is a preset template. Example: `rakuten/rpp-search.json`.
+Example: `rakuten/rpp-search.json` + `rakuten/__init__.py`.
 
 ## Usage
 
 ```bash
-# Add this repo
-ziniao site add https://github.com/tianyehedashu/ziniao-official-sites.git
+# Add this repo as a preset source
+ziniao site add https://github.com/tianyehedashu/site-hub.git
 
 # List available presets
 ziniao site list
 
-# Update
-ziniao site update ziniao-official-sites
+# Update to latest
+ziniao site update site-hub
 ```
+
+## Contributing
+
+PRs welcome! Add a new `<site>/` directory with your JSON presets and an optional `__init__.py` plugin.
