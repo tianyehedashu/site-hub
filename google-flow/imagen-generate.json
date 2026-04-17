@@ -1,13 +1,13 @@
 {
-  "name": "Google Flow（Labs）·Imagen 文生图",
-  "description": "在已登录 labs.google 的标签页内获取 fx 会话令牌并调用 aisandbox v1:runImageFx 生成图片；与 [Google Flow](https://labs.google/fx/tools/flow) / ImageFX 同属 Labs 体系，适合在 Flow 或 fx 工具页上下文下复用 Cookie。",
+  "name": "Google Flow（Labs）·文生图（Nano Banana Pro / 2 / Imagen 4）",
+  "description": "在已登录 labs.google 的标签页内获取 fx 会话令牌生成图片。**默认 Nano Banana Pro（NARWHAL，质量优先）**，走 batchGenerateImages + reCAPTCHA Enterprise + Flow 项目流程；Pro 配额耗尽时**默认自动降级到 Nano Banana 2（GEM_PIX_2）**。切 `-V model_name_type=IMAGEN_3_5` 可改走 runImageFx 用 Imagen 4（更偏摄影真实感）。与 [Google Flow](https://labs.google/fx/tools/flow) / ImageFX 同属 Labs 体系，Cookie 复用即可。单张 Pro 耗时 40~90s（含 reCAPTCHA + session，p99 ≤ 120s），沿用 daemon `_SLOW_COMMANDS` auto 120s；count≥2 时 agent 自行 `--timeout 300`。",
   "auth": {
     "type": "cookie",
     "hint": "请先在浏览器登录 Google，并打开 https://labs.google/fx/tools/flow（或任意 labs.google/fx 工具页）。若生成失败，可在 Flow 内手动生成一次后用 ziniao network list 核对实际 Referer / tool 字段，再通过 -V referer= / -V tool= 覆盖。"
   },
   "navigate_url": "https://labs.google/fx/tools/flow",
   "mode": "js",
-  "script": "(async()=>{const b=typeof __BODY__==='string'?JSON.parse(__BODY__):__BODY__;const prompt=String(b.prompt||'').trim();if(!prompt)return{ok:false,error:'prompt empty'};const seed=(typeof b.seed==='number'?b.seed:parseInt(String(b.seed||'0'),10))||0;const candidatesCount=(typeof b.candidates_count==='number'?b.candidates_count:parseInt(String(b.candidates_count||'1'),10))||1;const aspectRatio=String(b.aspect_ratio||'IMAGE_ASPECT_RATIO_LANDSCAPE');const modelNameType=String(b.model_name_type||'IMAGEN_3_5');const referer=String(b.referer||'https://labs.google/fx/tools/flow');const tool=String(b.tool||'IMAGE_FX');const sessionId=';'+Date.now();const sResp=await fetch('https://labs.google/fx/api/auth/session',{credentials:'include'});const sText=await sResp.text();let sJson={};try{sJson=JSON.parse(sText);}catch(_e){return{ok:false,step:'session',status:sResp.status,body:sText.slice(0,2000)};}const token=sJson.access_token;if(!token)return{ok:false,step:'session',status:sResp.status,body:sJson};const payload={userInput:{candidatesCount:Math.min(Math.max(candidatesCount,1),8),prompts:[prompt],seed:seed%2147483647},clientContext:{sessionId,tool},aspectRatio,modelInput:{modelNameType}};const gResp=await fetch('https://aisandbox-pa.googleapis.com/v1:runImageFx',{method:'POST',credentials:'include',headers:{accept:'*/*','content-type':'application/json',authorization:'Bearer '+token,origin:'https://labs.google',referer},body:JSON.stringify(payload)});const gText=await gResp.text();let gJson={};try{gJson=JSON.parse(gText);}catch(_e2){return{ok:false,step:'runImageFx',status:gResp.status,body:gText.slice(0,2000)};}if(!gResp.ok)return{ok:false,step:'runImageFx',status:gResp.status,body:gJson};const panel=gJson.imagePanels&&gJson.imagePanels[0];const generated=panel&&panel.generatedImages;if(!generated||!generated.length)return{ok:false,step:'parse',body:gJson};const slim=generated.map((im)=>({seed:im.seed,modelNameType:im.modelNameType,mediaGenerationId:im.mediaGenerationId,encodedImage:im.encodedImage,fifeUrl:im.fifeUrl}));return{ok:true,status:gResp.status,images:slim};})()",
+  "script": "(async()=>{const b=typeof __BODY__==='string'?JSON.parse(__BODY__):__BODY__;const prompt=String(b.prompt||'').trim();if(!prompt)return{ok:false,error:'prompt empty'};const seed=(typeof b.seed==='number'?b.seed:parseInt(String(b.seed||'0'),10))||0;const candidatesCount=Math.min(Math.max((typeof b.candidates_count==='number'?b.candidates_count:parseInt(String(b.candidates_count||'1'),10))||1,1),8);const aspectRatio=String(b.aspect_ratio||'IMAGE_ASPECT_RATIO_LANDSCAPE');const modelNameType=String(b.model_name_type||'NARWHAL');const referer=String(b.referer||'https://labs.google/fx/tools/flow');const tool=String(b.tool||'IMAGE_FX');const NANO_MODELS=new Set(['GEM_PIX_2','NARWHAL']);const isQuotaErr=(resp,json)=>resp.status===429&&json&&json.error&&Array.isArray(json.error.details)&&json.error.details.some(d=>d&&d.reason==='PUBLIC_ERROR_PER_MODEL_DAILY_QUOTA_REACHED');const sResp=await fetch('https://labs.google/fx/api/auth/session',{credentials:'include'});const sText=await sResp.text();let sJson={};try{sJson=JSON.parse(sText);}catch(_e){return{ok:false,step:'session',status:sResp.status,body:sText.slice(0,2000)};}const token=sJson.access_token;if(!token)return{ok:false,step:'session',status:sResp.status,body:sJson};if(NANO_MODELS.has(modelNameType)){const RC_KEY='6LdsFiUsAAAAAIjVDZcuLhaHiDn5nnHVXVRQGeMV';let pid=String(b.project_id||'').trim();if(!pid){const title=new Date().toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false});const cpResp=await fetch('https://labs.google/fx/api/trpc/project.createProject',{method:'POST',credentials:'include',headers:{'content-type':'application/json'},body:JSON.stringify({json:{projectTitle:title,toolName:'PINHOLE'}})});const cpJson=await cpResp.json();pid=cpJson&&cpJson.result&&cpJson.result.data&&cpJson.result.data.json&&cpJson.result.data.json.result&&cpJson.result.data.json.result.projectId;if(!pid)return{ok:false,step:'createProject',body:cpJson};}const freshCtx=async()=>{let tk='';try{tk=await grecaptcha.enterprise.execute(RC_KEY,{action:'IMAGE_GENERATION'});}catch(e){return{__rcErr:String(e&&e.message||e)};}return{recaptchaContext:{token:tk,applicationType:'RECAPTCHA_APPLICATION_TYPE_WEB'},projectId:pid,tool:'PINHOLE',sessionId:';'+Date.now()};};const callBatch=async(mn)=>{const ctx=await freshCtx();if(ctx.__rcErr)return{r:{status:-1,ok:false},j:{__recaptchaError:ctx.__rcErr}};const reqs=[];for(let i=0;i<candidatesCount;i++){const s=seed>0?(seed+i):Math.floor(Math.random()*1000000);reqs.push({clientContext:ctx,imageModelName:mn,imageAspectRatio:aspectRatio,structuredPrompt:{parts:[{text:prompt}]},seed:s});}const r=await fetch('https://aisandbox-pa.googleapis.com/v1/projects/'+pid+'/flowMedia:batchGenerateImages',{method:'POST',credentials:'include',headers:{'content-type':'text/plain;charset=UTF-8',authorization:'Bearer '+token},body:JSON.stringify({clientContext:ctx,mediaGenerationContext:{batchId:crypto.randomUUID()},useNewMedia:true,requests:reqs})});const t=await r.text();let j={};try{j=JSON.parse(t);}catch(_){j={__rawText:t.slice(0,2000)};}return{r,j};};let usedModel=modelNameType;let triedFallback=false;let {r:gResp,j:gJson}=await callBatch(modelNameType);const fbModel=String(b.fallback_model||'').trim();if(!gResp.ok&&isQuotaErr(gResp,gJson)&&fbModel&&fbModel!==modelNameType&&NANO_MODELS.has(fbModel)){triedFallback=true;const ret=await callBatch(fbModel);gResp=ret.r;gJson=ret.j;usedModel=fbModel;}if(!gResp.ok)return{ok:false,step:'batchGenerateImages',status:gResp.status,primaryModel:modelNameType,triedFallback,usedModel,body:gJson};const images=[];if(gJson.media){for(const m of gJson.media){const g=m.image&&m.image.generatedImage;if(g)images.push({mediaId:g.mediaId,fifeUrl:g.fifeUrl,modelNameType:g.modelNameType,prompt:g.prompt,seed:g.seed,aspectRatio:g.aspectRatio,dimensions:m.image.dimensions});}}return{ok:true,endpoint:'batchGenerateImages',projectId:pid,status:gResp.status,primaryModel:modelNameType,usedModel,fallbackUsed:triedFallback,images};}const sessionId=';'+Date.now();const payload={userInput:{candidatesCount,prompts:[prompt],seed:seed%2147483647},clientContext:{sessionId,tool},aspectRatio,modelInput:{modelNameType}};const gResp=await fetch('https://aisandbox-pa.googleapis.com/v1:runImageFx',{method:'POST',credentials:'include',headers:{accept:'*/*','content-type':'application/json',authorization:'Bearer '+token,origin:'https://labs.google',referer},body:JSON.stringify(payload)});const gText=await gResp.text();let gJson={};try{gJson=JSON.parse(gText);}catch(_e2){return{ok:false,step:'runImageFx',status:gResp.status,body:gText.slice(0,2000)};}if(!gResp.ok)return{ok:false,step:'runImageFx',status:gResp.status,body:gJson};const panel=gJson.imagePanels&&gJson.imagePanels[0];const generated=panel&&panel.generatedImages;if(!generated||!generated.length)return{ok:false,step:'parse',body:gJson};const slim=generated.map((im)=>({seed:im.seed,modelNameType:im.modelNameType,mediaGenerationId:im.mediaGenerationId,encodedImage:im.encodedImage,fifeUrl:im.fifeUrl}));return{ok:true,endpoint:'runImageFx',status:gResp.status,images:slim};})()",
   "body": {
     "prompt": "{{prompt}}",
     "seed": "{{seed}}",
@@ -15,7 +15,9 @@
     "aspect_ratio": "{{aspect_ratio}}",
     "model_name_type": "{{model_name_type}}",
     "referer": "{{referer}}",
-    "tool": "{{tool}}"
+    "tool": "{{tool}}",
+    "project_id": "{{project_id}}",
+    "fallback_model": "{{fallback_model}}"
   },
   "vars": {
     "prompt": {
@@ -41,18 +43,28 @@
     },
     "model_name_type": {
       "type": "str",
-      "default": "IMAGEN_3_5",
-      "description": "aisandbox protobuf 模型枚举。映射关系：Imagen 4 → IMAGEN_3_5 | Nano Banana 2 → GEM_PIX_2 | Nano Banana Pro → NARWHAL。纯文生图场景推荐 IMAGEN_3_5；需要参考图（style/subject reference）时必须使用 GEM_PIX_2 或 NARWHAL（通过 flowCreationAgent 端点，参见 SKILL.md）"
+      "default": "NARWHAL",
+      "description": "模型枚举。映射：Nano Banana Pro → NARWHAL（默认，质量优先，走 batchGenerateImages，单张 40~90s）| Nano Banana 2 → GEM_PIX_2（更快，走 batchGenerateImages）| Imagen 4 → IMAGEN_3_5（走 runImageFx，更偏摄影真实感）。Nano 分支用于纯文生图；若需要参考图，请用 imagen-ref-generate 并传 -V image= / -V images=。"
     },
     "referer": {
       "type": "str",
       "default": "https://labs.google/fx/tools/flow",
-      "description": "请求 aisandbox 时的 Referer，需与当前产品一致；ImageFX 场景可改为 https://labs.google/fx/tools/image-fx"
+      "description": "仅 runImageFx 分支使用：请求 aisandbox 时的 Referer，需与当前产品一致；ImageFX 场景可改为 https://labs.google/fx/tools/image-fx。Nano 分支忽略此字段。"
     },
     "tool": {
       "type": "str",
       "default": "IMAGE_FX",
-      "description": "clientContext.tool；若 Flow 与 ImageFX 行为不一致，请用 DevTools 抓包后填写实际值"
+      "description": "仅 runImageFx 分支使用：clientContext.tool。Nano 分支固定使用 PINHOLE（Flow 项目上下文）。"
+    },
+    "project_id": {
+      "type": "str",
+      "default": "",
+      "description": "仅 Nano 分支（batchGenerateImages）使用：复用已有 Flow 项目 ID；留空自动创建。"
+    },
+    "fallback_model": {
+      "type": "str",
+      "default": "GEM_PIX_2",
+      "description": "仅 Nano 分支自动降级：当 model_name_type 为 GEM_PIX_2 / NARWHAL 且命中 429 PUBLIC_ERROR_PER_MODEL_DAILY_QUOTA_REACHED 时，复用同一 projectId 并获取新 reCAPTCHA token 自动重试 fallback_model。默认 GEM_PIX_2，即 NARWHAL 耗尽时静默退到 Nano Banana 2；可显式传 -V fallback_model=\"\" 关闭降级。合法取值：GEM_PIX_2 / NARWHAL（跨端点降级不支持）。"
     }
   }
 }

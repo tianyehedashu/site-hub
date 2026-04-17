@@ -8,17 +8,28 @@
 
 ## TL;DR
 
-- **三条路径**：文生图（`runImageFx`） / 参考图生成（`batchGenerateImages`） / 媒体抓取（tRPC `media.fetchMedia`）。
-- **默认模型**：参考图默认 `NARWHAL`（Nano Banana Pro），质量优先；文生图默认 `IMAGEN_3_5`（Imagen 4）。
+- **三条路径**：文生图（`runImageFx` **或** `batchGenerateImages`，按模型自动选） / 参考图生成（`batchGenerateImages`） / 媒体抓取（tRPC `media.fetchMedia`）。
+- **默认模型**：**文生图 & 参考图生成均默认 Nano Banana Pro（`NARWHAL`，质量优先，走 `batchGenerateImages`）**。文生图 preset 默认自动降级到 `GEM_PIX_2`，即 Pro 耗尽时静默转 Nano 2。需要摄影真实感时 `-V model_name_type=IMAGEN_3_5` 改走 `runImageFx`。
 - **图片落盘**：优先用 `--save-images PREFIX`（内含 base64 decode + fifeUrl HTTP 下载 + magic bytes 扩展名识别）。
+- **性能 / 超时**：Pro 单张 40~90s（p99 ≤ 120s）。
+  - `imagen-generate`：**沿用 daemon `_SLOW_COMMANDS` auto 120s**（不另立默认，卡死 2 分钟内暴露）。
+  - `imagen-ref-generate`：因含参考图上传，preset 预置 `default_timeout_ms=180000`。
+  - 多张（`candidates_count` / `count ≥ 2`）或多张参考图：调用方显式 `--timeout 300~480`，按 `每张 ~120s × 数量` 粗估。
+  - CLI `--timeout N` 始终优先于 preset 默认。
 - **全链路 API**：无 UI 自动化步骤，Slate.js / React portal 全避开。
 
 ```bash
-# 文生图
+# 文生图 · 默认 Nano Banana Pro（含自动降级到 Nano 2），daemon auto 120s 足够单张
 uv run ziniao google-flow imagen-generate -V prompt="A koi lantern" --save-images exports/koi
 
-# 参考图生成（默认 Pro）
-uv run ziniao google-flow imagen-ref-generate -V images="./a.png,./b.png" -V prompt="ink painting" -V count=2 --save-images exports/out
+# 文生图 · 改走 Imagen 4（摄影真实感）
+uv run ziniao google-flow imagen-generate -V prompt="A koi lantern" -V model_name_type=IMAGEN_3_5 --save-images exports/koi-imagen
+
+# 参考图生成（默认 Pro，NARWHAL），preset 已带 180s timeout；count≥2 或 ≥2 张参考图时显式 --timeout 300~480
+uv run ziniao --timeout 360 google-flow imagen-ref-generate -V images="./a.png,./b.png" -V prompt="ink painting" -V count=2 --save-images exports/out
+
+# Nano 纯文生图也可直接用 imagen-ref-generate（不传 images）
+uv run ziniao google-flow imagen-ref-generate -V prompt="ink painting koi" --save-images exports/out
 ```
 
 ---
@@ -28,8 +39,8 @@ uv run ziniao google-flow imagen-ref-generate -V images="./a.png,./b.png" -V pro
 | 文件 | 子命令 | 端点 | 模式 | 用途 |
 |------|-------|------|------|------|
 | `auth-session.json` | `google-flow auth-session` | `labs.google/fx/api/auth/session` | fetch | 取 `access_token`（调试用） |
-| `imagen-generate.json` | `google-flow imagen-generate` | `aisandbox-pa:v1:runImageFx` | js | 文生图（Imagen 4） |
-| `imagen-ref-generate.json` | `google-flow imagen-ref-generate` | `aisandbox-pa:v1/projects/{pid}/flowMedia:batchGenerateImages` | js | 参考图生成（Nano Banana 2 / Pro） |
+| `imagen-generate.json` | `google-flow imagen-generate` | `runImageFx` 或 `batchGenerateImages` | js | 文生图；Imagen 走 `runImageFx`，Nano Banana（`GEM_PIX_2` / `NARWHAL`）自动切 `batchGenerateImages` |
+| `imagen-ref-generate.json` | `google-flow imagen-ref-generate` | `aisandbox-pa:v1/projects/{pid}/flowMedia:batchGenerateImages` | js | Nano Banana 生图（0~N 参考图）：有参考图做 style/subject 约束，无参考图退化为纯文生图 |
 | `imagen-upload.json` | `google-flow imagen-upload` | `aisandbox-pa:v1/flow/uploadImage` | js | 单独上传参考图（返回 mediaId） |
 | `media-fetch.json` | `google-flow media-fetch` | `labs.google/fx/api/trpc/media.fetchMedia` | fetch | 按 mediaKey 取历史资源 |
 
