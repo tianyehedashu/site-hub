@@ -6,7 +6,6 @@ Uses absolute import because this file lives outside the ziniao_mcp package.
 
 from __future__ import annotations
 
-import json
 from datetime import datetime, timedelta
 from urllib.parse import quote
 from zoneinfo import ZoneInfo
@@ -76,18 +75,6 @@ class RakutenPlugin(SitePlugin):
             f"&ev={ev}&tc={tc}&kw={quote(kw, safe='')}&ao={quote(ao, safe='')}&st={st}"
         )
         return request
-
-    def after_fetch(self, response: dict, request: dict) -> dict:
-        body_text = response.get("body", "")
-        if not body_text:
-            return response
-        try:
-            data = json.loads(body_text)
-        except (json.JSONDecodeError, TypeError):
-            return response
-        if data.get("status") == "SUCCESS" and "data" in data:
-            response["parsed"] = data["data"]
-        return response
 
 
 SITE_PLUGIN = RakutenPlugin

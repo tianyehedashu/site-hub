@@ -38,5 +38,11 @@
       "default": "asc",
       "description": "排序：asc / desc"
     }
+  },
+  "response_contract": {
+    "parse": "json",
+    "lift": [
+      { "from": "data", "to": "parsed", "when_eq": { "status": "SUCCESS" } }
+    ]
   }
 }

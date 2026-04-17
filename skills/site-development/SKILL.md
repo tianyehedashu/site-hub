@@ -357,35 +357,146 @@ Reversing workflow (five steps):
 4. **Pick a CORS-safe entry** — prefer same-origin tRPC / Route Handler; otherwise use `Content-Type: text/plain;charset=UTF-8`.
 5. **Extract constants from webpack bundles** (`site key`, `action` strings, enum names) by searching the chunked JS with the token you saw in HAR.
 
-### Media / Image Output — Response Contract
+### Media Output — Declaring a Save Contract
 
-To play nicely with `ziniao --save-images <prefix>`, your preset's final response MUST follow this shape:
+`--save-images <prefix>` persists media produced by your preset. **The core framework knows no site-specific field names** (`encodedImage` / `fifeUrl` / `artifacts` / `b64_json` / …) — each site declares its own contract via one of three tiers:
+
+#### Tier A — Declarative JSON (zero Python, covers 80% of sites)
+
+Add a top-level `media_contract` list to your preset JSON. Two rule shapes, mix freely:
+
+| Rule | Use For |
+|------|---------|
+| `{"items_at": "<dotted>", "fields": [{"key": "...", "source": "base64"|"url"}, …], "stem_suffix": "..."}` | Iterate a list and extract one or more media fields per element |
+| `{"at": "<dotted>", "source": "base64"|"url", "stem_suffix": "-logo"}` | Pick one specific field anywhere in the response |
+
+- **Dotted paths** walk dict keys *and* numeric list indices: `data.pages.0.items` resolves `result["data"]["pages"][0]["items"]`. Negative indices (`arr.-1.url`) are accepted.
+- **`stem_suffix`** supports `{idx}` (list index) and `{field}` (field key) placeholders. Omit it to get safe defaults:
+  - Single-field list rule → `-{idx}` → `prefix-0.jpg`, `prefix-1.jpg`
+  - Multi-field list rule → `-{idx}-{field}` → `prefix-0-encodedImage.png`, `prefix-0-fifeUrl.jpg`
+- **Collision guard**: a multi-field rule with a user-supplied `stem_suffix` that lacks `{field}` is **rejected** at compile time (`ValueError("…collide…")`). The framework refuses to silently overwrite files.
+- **Silent skips**: rules whose dotted path doesn't resolve, whose fields are missing, or whose `url` source value doesn't start with `http(s)://` are dropped quietly — one bad entry in a long contract won't break the whole `--save-images` run.
+
+Example (Google Flow's `imagen-generate` returning both inline base64 and signed CDN URLs):
 
 ```jsonc
 {
-  "images": [
-    { "encodedImage": "<base64 bytes>" },      // option A: inline bytes
-    { "fifeUrl":      "https://storage/..." }  // option B: signed CDN URL
+  "mode": "js",
+  "script": "...",
+  "media_contract": [
+    {
+      "items_at": "images",
+      "fields": [
+        { "key": "encodedImage", "source": "base64" },
+        { "key": "fifeUrl",      "source": "url" }
+      ]
+    }
   ]
 }
 ```
 
-Contract details:
+A site returning a single top-level logo + a nested thumbnail list:
 
-| Key | Type | Meaning |
-|-----|------|---------|
-| `images` | top-level list | required; the CLI walks only this one list |
-| `encodedImage` | base64 string | decoded and written to `<prefix>-<idx>.<ext>` |
-| `fifeUrl` | `https://...` URL | streamed via HTTP GET and written to `<prefix>-<idx>.jpg` |
+```jsonc
+{
+  "media_contract": [
+    { "at": "logo_url", "source": "url", "stem_suffix": "-logo" },
+    {
+      "items_at": "data.thumbnails",
+      "fields": [{ "key": "b64", "source": "base64" }]
+    }
+  ]
+}
+```
 
-Prefer `fifeUrl` over `encodedImage` whenever the upstream offers both — smaller daemon payload, faster download path. Nested structures (e.g. `panels[].generatedImages[]`) are **not** auto-traversed; flatten to a top-level `images` array in your script before returning.
+#### Tier B — Python Plugin Override
 
-**Reusing the save-to-disk primitives elsewhere.** If your site returns non-image binaries (CSV, PDF, zip, audio) or needs custom post-processing that `--save-images` can't express, import the atomic helpers directly from `ziniao_mcp.sites.save_media` inside your plugin or `mode: js` glue:
+When you need runtime logic the declarative form can't express (conditional on status codes, computed file names, synthesising items from multiple response branches), override `SitePlugin.media_contract(result, spec)`:
 
-- `save_base64_as_file(b64, "exports/<site>/<name>")` → decodes + writes, extension auto-detected from magic bytes (`.png` / `.pdf` / `.zip` / `.bin`…).
+```python
+class MySitePlugin(SitePlugin):
+    site_id = "my-site"
+
+    def media_contract(self, result: dict, spec: dict) -> list[dict]:
+        if result.get("status") != "ready":
+            return []
+        return [{
+            "source":       "url",
+            "value":        result["signed_url"],
+            "stem_suffix":  "-result",
+            "path":         ["signed_url"],
+        }]
+```
+
+Each **save item** is a 4-key dict:
+
+| Key | Meaning |
+|-----|---------|
+| `source` | `"base64"` or `"url"` |
+| `value` | the base64 payload or the URL |
+| `stem_suffix` | appended to `--save-images <prefix>` |
+| `path` | dict keys / list indices pointing back into *result*; patched with `"[saved: <filename>]"` after write so the printed JSON stays compact |
+
+#### Tier C — Do Nothing
+
+The default `SitePlugin.media_contract` returns `[]` when the preset has no `media_contract` block **and** no subclass overrides the method. Use when your preset returns no media — `--save-images` becomes a no-op (not an error).
+
+#### Reusing atomic helpers elsewhere
+
+If you persist bytes from inside a plugin's `after_fetch`, a `mode: js` post-processor, or a `mode: ui` step, import the atomic primitives directly from `ziniao_mcp.sites.save_media` instead of duplicating extension detection:
+
+- `save_base64_as_file(b64, "exports/<site>/<name>")` → decodes + writes, extension auto-detected from magic bytes (`.png` / `.pdf` / `.zip` / `.bin` / …).
 - `download_url_to_file(url, "exports/<site>/<name>")` → HTTP GET + writes, extension from Content-Type → magic fallback; pass `headers=` for auth if the URL isn't pre-signed.
+- `apply_media_contract(result, items, prefix)` → the orchestrator the CLI uses; call it manually if you want contract-driven saves outside `--save-images` (e.g. from a scheduled job).
 
-Both return the actual `Path` written (or `None` on failure) and create the parent directory as needed — treat them as the canonical way to persist bytes so exports stay consistent across sites.
+Both atomic functions return the actual `Path` written (or `None` on failure) and create the parent directory as needed — treat them as the canonical way to persist bytes so exports stay consistent across sites.
+
+## Response Output Contract
+
+The *non-media* sibling of `media_contract`: most JSON APIs wrap real data in an envelope like `{"status": "SUCCESS", "data": {...}}`. Instead of writing a Python `after_fetch` that just calls `json.loads(body)` and copies `data` to the top level, declare it in the preset JSON — the same three tiers as media:
+
+#### Tier A — Declarative (recommended for JSON envelopes)
+
+Add a top-level `response_contract` block:
+
+```jsonc
+{
+  // ...,
+  "response_contract": {
+    "parse": "json",
+    "lift": [
+      { "from": "data",     "to": "parsed",   "when_eq": { "status": "SUCCESS" } },
+      { "from": "meta.trace", "to": "trace_id" }
+    ]
+  }
+}
+```
+
+Semantics:
+
+- `parse`: currently only `"json"`. Non-matching / missing → contract is a no-op.
+- `lift[].from`: dotted path into the parsed tree (same syntax as `media_contract`, supports list indices like `pages.0.url`).
+- `lift[].to`: flat top-level key on the response dict (nested paths like `a.b` are rejected by design).
+- `lift[].when_eq`: optional `{path: literal}` — *all* paths must equal the expected literal for the rule to run (AND). Omit to apply unconditionally.
+- Any single rule that fails (missing path, JSON decode error, `when_eq` miss) is **silently skipped** — a partial response never crashes the CLI.
+
+#### Tier B — Python override
+
+When you need regex, numeric comparison, boolean OR, async enrichment, or anything else the declarative form can't express, override `SitePlugin.after_fetch(response, spec)`. Call `super().after_fetch(response, spec)` first if you still want the preset's declarative rules to run:
+
+```python
+class MyPlugin(SitePlugin):
+    def after_fetch(self, response: dict, spec: dict) -> dict:
+        super().after_fetch(response, spec)  # apply any declarative rules first
+        body = response.get("body", "")
+        if body and "<CRITICAL>" in body:
+            response["alert"] = True
+        return response
+```
+
+#### Tier C — Do Nothing
+
+Omit the block entirely and don't override `after_fetch`. The default implementation is a no-op on the response, which is correct for presets that either don't return JSON at all (CSV, binary) or whose consumers already work on `response["body"]` directly.
 
 ## Step 3: Write the Plugin (Tier 4)
 
@@ -413,11 +524,14 @@ class MySitePlugin(SitePlugin):
         # reading custom variables from request["_ziniao_merged_vars"]
         return request
 
-    def after_fetch(self, response: dict, request: dict) -> dict:
+    def after_fetch(self, response: dict, spec: dict) -> dict:
         # Post-process the raw response.
-        # response has: status, statusText, body (raw text)
-        # Attach response["parsed"] for downstream consumers.
-        return response
+        # response has: status, statusText, body (raw text); spec is the rendered preset.
+        # For simple JSON parse + lift, prefer a declarative `response_contract`
+        # block in the preset JSON (see §Response Output Contract) — the base
+        # class implementation reads it for you.  Override here only when you
+        # need runtime logic (status-code branching, regex, enrichment, …).
+        return super().after_fetch(response, spec)
 
 
 SITE_PLUGIN = MySitePlugin
@@ -428,8 +542,9 @@ SITE_PLUGIN = MySitePlugin
 | Hook | Called When | Input | Returns |
 |------|------------|-------|--------|
 | `before_fetch` | Before building the fetch JS | `request` dict + `tab`/`store` | Modified `request` dict |
-| `after_fetch` | After receiving raw response | `response` dict + `request` dict | Modified `response` dict |
+| `after_fetch` | After receiving raw response | `response` dict + `spec` dict | Modified `response` dict — default reads `spec["response_contract"]` (see §Response Output Contract); override for runtime logic |
 | `paginate` | For custom pagination logic | `fetch_fn` + `request` + `first_response` | `AsyncIterator[dict]` |
+| `media_contract` | Before `--save-images` writes files | `result` dict + `spec` dict | `list[dict]` of save items — default reads `spec["media_contract"]`; override for runtime logic (see §Media Output) |
 
 ### Plugin Access to Variables
 
@@ -542,6 +657,8 @@ Users update via `ziniao site update`.
 | `script` | Only for `mode:js` | JavaScript source executed in page context; receives `{{body}}` as a substituted literal and must `return` a JSON value |
 | `pagination` | No | Pagination config for `--page` / `--all` support |
 | `output_decode_encoding` | No | Default `--decode-encoding` for `-o` (e.g. `cp932`) |
+| `media_contract` | No | Declarative rules for `--save-images` (see §Media Output). Compiled by the default `SitePlugin.media_contract`; override in a plugin for runtime logic. |
+| `response_contract` | No | Declarative body-parse + lift rules (see §Response Output Contract). Applied by the default `SitePlugin.after_fetch`; override in a plugin for runtime logic. |
 
 `vars[].type` accepted values: `str` · `int` · `float` · `bool` · `file` · `file_list` (see §Variable Types).
 
@@ -559,7 +676,9 @@ Users update via `ziniao site update`.
 | `ConnectionResetError` / 1 MB daemon cap on upload | Use `type: file` / `file_list` instead of passing base64 through `-V`; the daemon resolves `@@ZFILE@@` / `@@ZURL@@` refs server-side |
 | Request times out on long generations | Add `page_fetch` cases rely on `_SLOW_COMMANDS` (120 s); for `count >= 2` / slower models, pass `--timeout 300` explicitly |
 | reCAPTCHA Enterprise 403 | Inspect `window.grecaptcha.enterprise` and webpack bundles to find the correct `site key` + `action` string; both are case-sensitive |
-| Need a reusable CDN URL in the response | Prefer `fifeUrl`-style signed URLs over base64 so `--save-images` can stream-download instead of allocating huge strings |
+| Need a reusable CDN URL in the response | Prefer signed URLs (`source: url` in `media_contract`) over inline base64 so `--save-images` streams the bytes instead of allocating huge strings through the daemon |
+| `--save-images` writes nothing / silently overwrites a file | Either your preset has no `media_contract` block *and* no plugin override (→ add one, see §Media Output), or a multi-field rule is using a `stem_suffix` without `{field}`; the compiler now raises `ValueError("…collide…")` with the offending rule highlighted |
+| `response["parsed"]` suddenly missing after upgrade | An older plugin used to synthesize `parsed` in `after_fetch`; that Python has been replaced by declarative `response_contract`. Add the block to the preset JSON (see §Response Output Contract) — the default `after_fetch` will lift it back. |
 
 ## Case Studies
 

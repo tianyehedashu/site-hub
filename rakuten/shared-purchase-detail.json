@@ -77,5 +77,11 @@
       "default": "true",
       "description": "包含未同意项"
     }
+  },
+  "response_contract": {
+    "parse": "json",
+    "lift": [
+      { "from": "data", "to": "parsed", "when_eq": { "status": "SUCCESS" } }
+    ]
   }
 }

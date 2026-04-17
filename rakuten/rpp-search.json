@@ -75,5 +75,11 @@
     "cv": true,
     "cvr": true,
     "cpa": true
+  },
+  "response_contract": {
+    "parse": "json",
+    "lift": [
+      { "from": "data", "to": "parsed", "when_eq": { "status": "SUCCESS" } }
+    ]
   }
 }

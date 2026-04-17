@@ -13,5 +13,11 @@
   "headers": {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Accept-Language": "ja"
+  },
+  "response_contract": {
+    "parse": "json",
+    "lift": [
+      { "from": "data", "to": "parsed", "when_eq": { "status": "SUCCESS" } }
+    ]
   }
 }

@@ -80,5 +80,11 @@
     "startDate": "{{start_date}}",
     "endDate": "{{end_date}}",
     "pageSize": "{{page_size}}"
+  },
+  "response_contract": {
+    "parse": "json",
+    "lift": [
+      { "from": "data", "to": "parsed", "when_eq": { "status": "SUCCESS" } }
+    ]
   }
 }

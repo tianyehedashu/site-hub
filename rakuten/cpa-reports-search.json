@@ -38,5 +38,11 @@
       "default": 2,
       "description": "周期类型：2=自定义区间"
     }
+  },
+  "response_contract": {
+    "parse": "json",
+    "lift": [
+      { "from": "data", "to": "parsed", "when_eq": { "status": "SUCCESS" } }
+    ]
   }
 }
