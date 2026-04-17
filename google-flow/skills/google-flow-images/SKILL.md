@@ -10,9 +10,9 @@ allowed-tools: Bash(ziniao:*)
 
 ## 环境
 
-1. `ziniao launch --user-data-dir "%LOCALAPPDATA%\Google\Chrome\User Data"`
-2. 打开 `https://labs.google/fx/tools/flow` 确认会话有效  
-3. `ziniao site update`（或确保 `site-hub/google-flow` 在 `~/.ziniao/repos/site-hub`）
+1. `ziniao session list` 为空时自行拉起：`ziniao launch --user-data-dir "%LOCALAPPDATA%\Google\Chrome\User Data" --url https://labs.google/fx/tools/flow`
+2. `ziniao google-flow auth-session` 验证，拿到 `access_token` 即可开跑
+3. `ziniao site update` 保持 `site-hub/google-flow` preset 最新
 
 ## 子命令一览（`ziniao google-flow …`）
 
@@ -24,7 +24,7 @@ allowed-tools: Bash(ziniao:*)
 | `auth-session` | — | session | 调试会话 |
 | `media-fetch` | `-V media_key=` | tRPC | 按 key 取资源 |
 
-**全局**：所有 site 子命令支持 `-o file.json` 保存 JSON；图片优先用 `--save-images`。
+**全局**：所有 site 子命令支持 `-o file.json` 保存 JSON；图片优先用 `--save-images`。`--timeout` 是 `ziniao` 根命令全局选项，位置为 `ziniao --timeout 480 google-flow imagen-generate ...`。
 
 ## 核心使用场景
 
@@ -40,7 +40,11 @@ uv run ziniao google-flow imagen-generate \
 
 生成文件：`exports/flow-lantern-0.jpg`（按 magic bytes 自动扩展名）。返回 JSON 里 `usedModel` 可判断最终出图模型；`fallbackUsed: true` 即发生了降级。
 
-多张：`-V candidates_count=4`（Pro 每张 40~90s，显式 `--timeout 480` 覆盖 daemon 默认 120s）
+多张（全量 4 张，Pro 每张 40~90s，显式 `--timeout 480` 覆盖 daemon 默认 120s；`--timeout` 放在根命令位置）：
+
+```bash
+uv run ziniao --timeout 480 google-flow imagen-generate -V prompt="..." -V candidates_count=4 --save-images exports/flow-multi
+```
 
 #### 1.1 切到 Imagen 4（摄影真实感，走 runImageFx）
 
@@ -274,6 +278,8 @@ Flow / Labs 的 webpack bundle 里可能还出现 `IMAGEN_3_5_FAST`、`VEO_*`（
 | 终端卡死 / JSON 巨大 | 使用 `--save-images`；勿在无 `-o` 时用 `--json` 处理大 base64 |
 | 上传失败 | 图 ≥ 约 64×64；单文件 ≤ 20MB（Google 侧限制） |
 | `session` 无 token | 使用已登录 Profile 启动 Chrome 并打开 Flow |
+| `没有活动的浏览器会话` | `ziniao launch --user-data-dir "%LOCALAPPDATA%\Google\Chrome\User Data" --url https://labs.google/fx/tools/flow` |
+| `No such option: --timeout` | 全局选项：`ziniao --timeout 480 google-flow imagen-generate ...` |
 | fifeUrl 下载失败 | URL 有效期约 6 小时；过期需重新生成 |
 | `RESOURCE_EXHAUSTED` / `PUBLIC_ERROR_PER_MODEL_DAILY_QUOTA_REACHED` | 当前账号当日该模型配额耗尽；最快解法：`imagen-generate` 加 `-V fallback_model=NARWHAL`（或 `GEM_PIX_2`），preset 会自动换池重试；或手动改 `model_name_type` 切到 Imagen/另一 Nano |
 | `reCAPTCHA evaluation failed` / `PUBLIC_ERROR_UNUSUAL_ACTIVITY` (403) | reCAPTCHA Enterprise token 被风控：常见原因是同一 token 复用、或页面 `grecaptcha` 久未交互。preset 内部已为每次 batch 请求申请新 token；若仍失败，刷新 `labs.google/fx/tools/flow` 页面后重试 |
