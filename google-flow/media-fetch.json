@@ -1,0 +1,22 @@
+{
+  "name": "Google Flow（Labs）·按 mediaKey 取图",
+  "description": "调用 labs.google fx tRPC media.fetchMedia，根据 mediaGenerationId / mediaKey 拉取已生成资源的 JSON（内含图像字段）；常配合 imagen-generate 返回的 mediaGenerationId 使用。",
+  "auth": {
+    "type": "cookie",
+    "hint": "需已登录 labs.google/fx，且 media_key 来自同一会话下的生成结果。"
+  },
+  "navigate_url": "https://labs.google/fx/tools/flow",
+  "mode": "js",
+  "script": "(async()=>{const b=typeof __BODY__==='string'?JSON.parse(__BODY__):__BODY__;const id=String(b.media_key||'').trim();if(!id)return{ok:false,error:'media_key empty'};const input=encodeURIComponent(JSON.stringify({json:{mediaKey:id}}));const url='https://labs.google/fx/api/trpc/media.fetchMedia?input='+input;const r=await fetch(url,{credentials:'include',headers:{accept:'application/json'}});const t=await r.text();let j={};try{j=JSON.parse(t);}catch(_e){return{ok:false,status:r.status,body:t.slice(0,2000)};}return{ok:r.ok,status:r.status,result:j};})()",
+  "body": {
+    "media_key": "{{media_key}}"
+  },
+  "vars": {
+    "media_key": {
+      "type": "str",
+      "required": true,
+      "description": "媒体键（如 imagen-generate 返回的 mediaGenerationId）",
+      "example": "user:12345:..."
+    }
+  }
+}

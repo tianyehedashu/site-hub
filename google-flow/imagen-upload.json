@@ -1,0 +1,27 @@
+{
+  "name": "Google Flow · 上传参考图",
+  "description": "将本地图片或远程 URL 上传至 Google Flow，获取 mediaId。可选填写 prompt（仅写入返回 JSON 的 prompt_used，便于与后续页面生成对齐；不参与上传 API）。",
+  "auth": {
+    "type": "cookie",
+    "hint": "请先在浏览器登录 Google，并打开 https://labs.google/fx/tools/flow 确保会话有效。"
+  },
+  "navigate_url": "https://labs.google/fx/tools/flow",
+  "mode": "js",
+  "script": "(async()=>{const b=typeof __BODY__==='string'?JSON.parse(__BODY__):__BODY__;const base64Data=String(b.image||'').trim();const promptUsed=String(b.prompt||'').trim();if(!base64Data)return{ok:false,error:'image is required (local file path, URL, or base64 string)'};const sResp=await fetch('https://labs.google/fx/api/auth/session',{credentials:'include'});const sJson=await sResp.json();const token=sJson.access_token;if(!token)return{ok:false,step:'session',body:sJson};const uResp=await fetch('https://aisandbox-pa.googleapis.com/v1/flow/uploadImage',{method:'POST',credentials:'include',headers:{accept:'*/*','content-type':'application/json',authorization:'Bearer '+token,origin:'https://labs.google',referer:'https://labs.google/fx/tools/flow'},body:JSON.stringify({imageBytes:base64Data})});const uText=await uResp.text();let uJson;try{uJson=JSON.parse(uText)}catch(_){return{ok:false,step:'upload',status:uResp.status,body:uText.slice(0,2000)}}if(!uResp.ok)return{ok:false,step:'upload',status:uResp.status,body:uJson};const out={ok:true,mediaId:uJson.media&&uJson.media.name,workflowId:uJson.media&&uJson.media.workflowId,dimensions:uJson.media&&uJson.media.image&&uJson.media.image.dimensions,workflow:uJson.workflow};if(promptUsed)out.prompt_used=promptUsed;return out})()",
+  "body": {
+    "image": "{{image}}",
+    "prompt": "{{prompt}}"
+  },
+  "vars": {
+    "image": {
+      "type": "file",
+      "required": true,
+      "description": "要上传的图片：本地路径、HTTP(S) URL、或 base64。"
+    },
+    "prompt": {
+      "type": "str",
+      "default": "",
+      "description": "可选。会出现在返回 JSON 的 prompt_used 字段，便于记录意图；不上传到服务器。"
+    }
+  }
+}

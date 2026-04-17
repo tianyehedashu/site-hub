@@ -1,0 +1,55 @@
+{
+  "name": "Flow Demo · Quotes Scrape (Tier 2.5 mode:ui)",
+  "description": "End-to-end mode:ui example on quotes.toscrape.com — navigates by tag, scrapes the quote list, follows the Next link, and streams the API mirror via an inline fetch step. No auth required.",
+  "mode": "ui",
+  "navigate_url": "http://quotes.toscrape.com/",
+  "vars": {
+    "tag": {
+      "type": "str",
+      "default": "humor",
+      "description": "Tag to filter by (e.g. humor, love, inspirational, life)."
+    }
+  },
+  "steps": [
+    {
+      "id": "goto_tag",
+      "action": "navigate",
+      "url": "http://quotes.toscrape.com/tag/{{tag}}/"
+    },
+    {
+      "id": "wait_list",
+      "action": "wait",
+      "selector": "div.quote",
+      "timeout": 10
+    },
+    {
+      "id": "quotes",
+      "action": "extract",
+      "as": "quotes",
+      "kind": "eval",
+      "script": "Array.from(document.querySelectorAll('div.quote')).map(q => ({ text: q.querySelector('span.text').innerText, author: q.querySelector('small.author').innerText, tags: Array.from(q.querySelectorAll('a.tag')).map(a => a.innerText) }))"
+    },
+    {
+      "id": "next_href",
+      "action": "extract",
+      "as": "next_href",
+      "kind": "attribute",
+      "selector": "li.next a",
+      "attr": "href"
+    },
+    {
+      "id": "page_title",
+      "action": "extract",
+      "as": "page_title",
+      "kind": "text",
+      "selector": "h1 a"
+    }
+  ],
+  "output_contract": {
+    "tag": "$.vars.tag",
+    "title": "$.extracted.page_title",
+    "quotes": "$.extracted.quotes",
+    "next": "$.extracted.next_href"
+  },
+  "on_error": { "screenshot": true, "snapshot": true }
+}

@@ -1,0 +1,58 @@
+{
+  "name": "Google Flow（Labs）·Imagen 文生图",
+  "description": "在已登录 labs.google 的标签页内获取 fx 会话令牌并调用 aisandbox v1:runImageFx 生成图片；与 [Google Flow](https://labs.google/fx/tools/flow) / ImageFX 同属 Labs 体系，适合在 Flow 或 fx 工具页上下文下复用 Cookie。",
+  "auth": {
+    "type": "cookie",
+    "hint": "请先在浏览器登录 Google，并打开 https://labs.google/fx/tools/flow（或任意 labs.google/fx 工具页）。若生成失败，可在 Flow 内手动生成一次后用 ziniao network list 核对实际 Referer / tool 字段，再通过 -V referer= / -V tool= 覆盖。"
+  },
+  "navigate_url": "https://labs.google/fx/tools/flow",
+  "mode": "js",
+  "script": "(async()=>{const b=typeof __BODY__==='string'?JSON.parse(__BODY__):__BODY__;const prompt=String(b.prompt||'').trim();if(!prompt)return{ok:false,error:'prompt empty'};const seed=(typeof b.seed==='number'?b.seed:parseInt(String(b.seed||'0'),10))||0;const candidatesCount=(typeof b.candidates_count==='number'?b.candidates_count:parseInt(String(b.candidates_count||'1'),10))||1;const aspectRatio=String(b.aspect_ratio||'IMAGE_ASPECT_RATIO_LANDSCAPE');const modelNameType=String(b.model_name_type||'IMAGEN_3_5');const referer=String(b.referer||'https://labs.google/fx/tools/flow');const tool=String(b.tool||'IMAGE_FX');const sessionId=';'+Date.now();const sResp=await fetch('https://labs.google/fx/api/auth/session',{credentials:'include'});const sText=await sResp.text();let sJson={};try{sJson=JSON.parse(sText);}catch(_e){return{ok:false,step:'session',status:sResp.status,body:sText.slice(0,2000)};}const token=sJson.access_token;if(!token)return{ok:false,step:'session',status:sResp.status,body:sJson};const payload={userInput:{candidatesCount:Math.min(Math.max(candidatesCount,1),8),prompts:[prompt],seed:seed%2147483647},clientContext:{sessionId,tool},aspectRatio,modelInput:{modelNameType}};const gResp=await fetch('https://aisandbox-pa.googleapis.com/v1:runImageFx',{method:'POST',credentials:'include',headers:{accept:'*/*','content-type':'application/json',authorization:'Bearer '+token,origin:'https://labs.google',referer},body:JSON.stringify(payload)});const gText=await gResp.text();let gJson={};try{gJson=JSON.parse(gText);}catch(_e2){return{ok:false,step:'runImageFx',status:gResp.status,body:gText.slice(0,2000)};}if(!gResp.ok)return{ok:false,step:'runImageFx',status:gResp.status,body:gJson};const panel=gJson.imagePanels&&gJson.imagePanels[0];const generated=panel&&panel.generatedImages;if(!generated||!generated.length)return{ok:false,step:'parse',body:gJson};const slim=generated.map((im)=>({seed:im.seed,modelNameType:im.modelNameType,mediaGenerationId:im.mediaGenerationId,encodedImage:im.encodedImage,fifeUrl:im.fifeUrl}));return{ok:true,status:gResp.status,images:slim};})()",
+  "body": {
+    "prompt": "{{prompt}}",
+    "seed": "{{seed}}",
+    "candidates_count": "{{candidates_count}}",
+    "aspect_ratio": "{{aspect_ratio}}",
+    "model_name_type": "{{model_name_type}}",
+    "referer": "{{referer}}",
+    "tool": "{{tool}}"
+  },
+  "vars": {
+    "prompt": {
+      "type": "str",
+      "required": true,
+      "description": "英文或中文提示词（与 Flow 内文生图一致）",
+      "example": "A red bicycle on a rainy Tokyo street at night, cinematic lighting"
+    },
+    "seed": {
+      "type": "int",
+      "default": 0,
+      "description": "随机种子（会按接口取模）"
+    },
+    "candidates_count": {
+      "type": "int",
+      "default": 1,
+      "description": "单次生成张数，1～8（以账号与模型实际限制为准）"
+    },
+    "aspect_ratio": {
+      "type": "str",
+      "default": "IMAGE_ASPECT_RATIO_LANDSCAPE",
+      "description": "画幅枚举：IMAGE_ASPECT_RATIO_SQUARE / PORTRAIT / LANDSCAPE / LANDSCAPE_FOUR_THREE / UNSPECIFIED"
+    },
+    "model_name_type": {
+      "type": "str",
+      "default": "IMAGEN_3_5",
+      "description": "aisandbox protobuf 模型枚举。映射关系：Imagen 4 → IMAGEN_3_5 | Nano Banana 2 → GEM_PIX_2 | Nano Banana Pro → NARWHAL。纯文生图场景推荐 IMAGEN_3_5；需要参考图（style/subject reference）时必须使用 GEM_PIX_2 或 NARWHAL（通过 flowCreationAgent 端点，参见 SKILL.md）"
+    },
+    "referer": {
+      "type": "str",
+      "default": "https://labs.google/fx/tools/flow",
+      "description": "请求 aisandbox 时的 Referer，需与当前产品一致；ImageFX 场景可改为 https://labs.google/fx/tools/image-fx"
+    },
+    "tool": {
+      "type": "str",
+      "default": "IMAGE_FX",
+      "description": "clientContext.tool；若 Flow 与 ImageFX 行为不一致，请用 DevTools 抓包后填写实际值"
+    }
+  }
+}

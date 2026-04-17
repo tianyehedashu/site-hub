@@ -1,0 +1,63 @@
+{
+  "name": "Flow Demo · Login + Scrape (type:secret)",
+  "description": "Demonstrates Tier 2.5 mode:ui with a secret variable. Logs in to quotes.toscrape.com (demo creds: admin/admin), then extracts the logged-in username and the list of quote authors. Run after exporting ZINIAO_DEMO_PWD=admin (or keyring:zn-demo:quotes-admin).",
+  "mode": "ui",
+  "navigate_url": "http://quotes.toscrape.com/login",
+  "vars": {
+    "username": {
+      "type": "str",
+      "default": "admin",
+      "description": "Any non-empty value works on the demo site."
+    },
+    "password": {
+      "type": "secret",
+      "source": "env:ZINIAO_DEMO_PWD",
+      "required": true,
+      "description": "Demo credential; export ZINIAO_DEMO_PWD=admin or switch to 'keyring:zn-demo:quotes-admin'."
+    }
+  },
+  "steps": [
+    {
+      "id": "fill_user",
+      "action": "fill",
+      "selector": "input#username",
+      "value": "{{username}}"
+    },
+    {
+      "id": "fill_pw",
+      "action": "fill",
+      "selector": "input#password",
+      "value": "{{password}}"
+    },
+    {
+      "id": "submit",
+      "action": "click",
+      "selector": "input[type=submit]"
+    },
+    {
+      "id": "wait_logged_in",
+      "action": "wait",
+      "selector": "a[href='/logout']",
+      "timeout": 10
+    },
+    {
+      "id": "logout_label",
+      "action": "extract",
+      "as": "logout_label",
+      "kind": "text",
+      "selector": "a[href='/logout']"
+    },
+    {
+      "id": "authors",
+      "action": "extract",
+      "as": "authors",
+      "kind": "querySelectorAll",
+      "selector": "small.author"
+    }
+  ],
+  "output_contract": {
+    "logout_label": "$.extracted.logout_label",
+    "authors": "$.extracted.authors"
+  },
+  "on_error": { "screenshot": true, "snapshot": true }
+}

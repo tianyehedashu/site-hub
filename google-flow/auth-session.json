@@ -1,0 +1,15 @@
+{
+  "name": "Google Flow（Labs）·会话令牌",
+  "description": "读取 https://labs.google/fx/api/auth/session，返回 access_token 等会话字段；用于排查登录态或自行拼接请求前校验。",
+  "auth": {
+    "type": "cookie",
+    "hint": "先在当前标签页登录并打开 https://labs.google/fx/tools/flow 或任意 fx 工具页。"
+  },
+  "navigate_url": "https://labs.google/fx/tools/flow",
+  "mode": "fetch",
+  "url": "https://labs.google/fx/api/auth/session",
+  "method": "GET",
+  "headers": {
+    "Accept": "application/json"
+  }
+}
