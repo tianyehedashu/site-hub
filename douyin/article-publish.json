@@ -31,11 +31,11 @@
     },
     {
       "id": "upload_head",
-      "action": "upload-hijack",
+      "action": "upload-react",
       "trigger": "[class*=\"addIcon\"]",
-      "file_paths": ["{{vars.head_image}}"],
-      "wait_ms": 30000,
-      "continue_on_error": true
+      "file_paths": [
+        "{{vars.head_image}}"
+      ]
     },
     {
       "id": "wait_crop",
@@ -50,6 +50,10 @@
       "action": "eval",
       "script": "(() => { const b = [...document.querySelectorAll('button')].find(b => b.innerText?.trim() === '确定' && b.offsetWidth > 0); if (!b) return 'no_btn'; const pk = Object.keys(b).find(k => k.startsWith('__reactProps')); if (pk && b[pk]?.onClick) { b[pk].onClick(); return 'react_clicked'; } return 'no_onClick'; })()",
       "continue_on_error": true
+    },
+    {
+      "id": "reinject_vars",
+      "action": "inject-vars"
     },
     {
       "id": "fill_title",
@@ -74,7 +78,7 @@
     {
       "id": "scroll_bottom",
       "action": "eval",
-      "script": "window.scrollTo(0, document.documentElement.scrollHeight); return 'ok'"
+      "script": "window.scrollTo(0, document.documentElement.scrollHeight); 'ok'"
     },
     {
       "id": "click_publish",
