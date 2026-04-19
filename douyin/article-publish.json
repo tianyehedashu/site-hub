@@ -1,0 +1,102 @@
+{
+  "name": "Douyin · 文章发布（Article Publish）",
+  "description": "全流程抖音文章发布：上传头图 → 裁剪 → 填标题 → 插入正文 → 等CDN → 发布。需要先登录 creator.douyin.com。",
+  "mode": "ui",
+  "navigate_url": "https://creator.douyin.com/creator-micro/content/post/article?enter_from=publish_page&media_type=article&type=new",
+  "auth": {
+    "type": "cookie",
+    "hint": "请先在浏览器登录 creator.douyin.com，并确保 Chrome 已启动 --remote-debugging-port=9222。"
+  },
+  "vars": {
+    "title": {
+      "type": "str",
+      "required": true,
+      "description": "文章标题（≤30字）"
+    },
+    "content_html": {
+      "type": "str",
+      "required": true,
+      "description": "文章正文 HTML（含 <img> 标签）。建议将 HTML 写入文件，用 @file.html 引用。"
+    },
+    "head_image": {
+      "type": "str",
+      "required": true,
+      "description": "头图文件路径（本地）"
+    }
+  },
+  "steps": [
+    {
+      "id": "clear_overlays",
+      "action": "clear-overlay"
+    },
+    {
+      "id": "upload_head",
+      "action": "upload-hijack",
+      "trigger": "[class*=\"addIcon\"]",
+      "file_paths": ["{{vars.head_image}}"],
+      "wait_ms": 30000,
+      "continue_on_error": true
+    },
+    {
+      "id": "wait_crop",
+      "action": "wait",
+      "selector": "button",
+      "text": "确定",
+      "timeout": 15,
+      "continue_on_error": true
+    },
+    {
+      "id": "close_crop",
+      "action": "eval",
+      "script": "(() => { const b = [...document.querySelectorAll('button')].find(b => b.innerText?.trim() === '确定' && b.offsetWidth > 0); if (!b) return 'no_btn'; const pk = Object.keys(b).find(k => k.startsWith('__reactProps')); if (pk && b[pk]?.onClick) { b[pk].onClick(); return 'react_clicked'; } return 'no_onClick'; })()",
+      "continue_on_error": true
+    },
+    {
+      "id": "fill_title",
+      "action": "eval",
+      "script": "(() => { const ti = document.querySelector('input[placeholder*=\"标题\"]'); if (!ti) return 'no_title_input'; const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; setter.call(ti, window.__flow_vars.title); ti.dispatchEvent(new Event('input', {bubbles: true})); ti.dispatchEvent(new Event('change', {bubbles: true})); return 'ok'; })()"
+    },
+    {
+      "id": "insert_content",
+      "action": "eval",
+      "script": "(() => { const e = document.querySelector('.editor-DoqDrA'); if (!e) return 'no_editor'; const f = Object.keys(e).find(k => k.startsWith('__reactFiber')); if (!f) return 'no_fiber'; let c = e[f], ed = null; for (let i = 0; i < 20 && c; i++) { const s = c.memoizedState; if (s) { let h = s; while (h) { const v = h.memoizedState; if (v && typeof v === 'object' && v.editor && v.editor.commands && typeof v.editor.commands.insertContent === 'function') { ed = v.editor; break; } h = h.next; } } if (ed) break; c = c.return; } if (!ed) return 'no_tiptap'; ed.commands.clearContent(); ed.commands.insertContent(window.__flow_vars.content_html); return 'ok'; })()"
+    },
+    {
+      "id": "wait_cdn",
+      "action": "eval",
+      "await_promise": true,
+      "script": "(async () => { for (let i = 0; i < 60; i++) { await new Promise(r => setTimeout(r, 2000)); const imgs = document.querySelector('.ProseMirror')?.querySelectorAll('img') || []; let cdn = 0, total = imgs.length; imgs.forEach(im => { if (!im.src.startsWith('blob:') && !im.src.startsWith('data:')) cdn++; }); if (total > 0 && cdn >= total) return JSON.stringify({cdn, total, ready: true}); } return JSON.stringify({ready: false}); })()"
+    },
+    {
+      "id": "clear_overlays_2",
+      "action": "clear-overlay"
+    },
+    {
+      "id": "scroll_bottom",
+      "action": "eval",
+      "script": "window.scrollTo(0, document.documentElement.scrollHeight); return 'ok'"
+    },
+    {
+      "id": "click_publish",
+      "action": "eval",
+      "script": "(() => { const btns = [...document.querySelectorAll('button')].filter(e => e.innerText?.trim() === '发布' && e.offsetWidth > 0); const btn = btns[btns.length - 1]; if (!btn) return 'no_btn'; const pk = Object.keys(btn).find(k => k.startsWith('__reactProps')); if (pk && btn[pk]?.onClick) { btn[pk].onClick(); return 'clicked'; } return 'no_onClick'; })()"
+    },
+    {
+      "id": "wait_popup",
+      "action": "wait",
+      "timeout": 5,
+      "state": "idle"
+    },
+    {
+      "id": "click_popup_publish",
+      "action": "eval",
+      "script": "(() => { const btns = [...document.querySelectorAll('button')].filter(e => e.innerText?.trim() === '发布' && e.offsetWidth > 0); const popup = btns.find(b => { const r = b.getBoundingClientRect(); return r.y > 500; }); if (!popup) return 'no_popup'; const pk = Object.keys(popup).find(k => k.startsWith('__reactProps')); if (pk && popup[pk]?.onClick) { popup[pk].onClick(); return 'popup_clicked'; } return 'popup_no_onClick'; })()",
+      "continue_on_error": true
+    }
+  ],
+  "on_error": {
+    "screenshot": true,
+    "snapshot": true
+  },
+  "default_timeout_ms": 300000
+}
