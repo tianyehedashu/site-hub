@@ -1,0 +1,129 @@
+{
+  "name": "Douyin · 端到端发布诊断",
+  "description": "完整流程：导航→头图→封面(1080x1440)→标题→正文→完成封面→发布→采集。最终验证用例，会真发一篇测试文章。",
+  "mode": "ui",
+  "navigate_url": "https://creator.douyin.com/creator-micro/content/post/article?enter_from=publish_page&media_type=article&type=new",
+  "auth": {
+    "type": "cookie",
+    "hint": "需先登录 creator.douyin.com。"
+  },
+  "vars": {
+    "head_image": {
+      "type": "str",
+      "required": true,
+      "description": "头图（嵌在正文里）"
+    },
+    "cover_image": {
+      "type": "str",
+      "required": true,
+      "description": "封面（推荐页展示用，3:4 竖图，≥1080x1440）"
+    }
+  },
+  "steps": [
+    {
+      "id": "nav",
+      "action": "navigate",
+      "url": "https://creator.douyin.com/creator-micro/content/post/article?enter_from=publish_page&media_type=article&type=new"
+    },
+    {
+      "id": "clear_overlays",
+      "action": "clear-overlay"
+    },
+    {
+      "id": "upload_head",
+      "action": "upload-react",
+      "trigger": "[class*=\"addIcon\"]",
+      "file_paths": [
+        "{{vars.head_image}}"
+      ]
+    },
+    {
+      "id": "wait_after_head",
+      "action": "wait",
+      "timeout": 3
+    },
+    {
+      "id": "fill_title",
+      "action": "eval",
+      "script": "(() => { const ti = document.querySelector('input[placeholder*=\"标题\"]'); if (!ti) return 'no_title_input'; const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; setter.call(ti, 'PROBE-E2E-DELETE-ME-' + Date.now().toString(36)); ti.dispatchEvent(new Event('input', {bubbles: true})); ti.dispatchEvent(new Event('change', {bubbles: true})); return 'ok'; })()"
+    },
+    {
+      "id": "insert_content",
+      "action": "eval",
+      "script": "(() => { const e = document.querySelector('.editor-DoqDrA'); if (!e) return 'no_editor'; const f = Object.keys(e).find(k => k.startsWith('__reactFiber')); if (!f) return 'no_fiber'; let c = e[f], ed = null; for (let i = 0; i < 20 && c; i++) { const s = c.memoizedState; if (s) { let h = s; while (h) { const v = h.memoizedState; if (v && typeof v === 'object' && v.editor && v.editor.commands && typeof v.editor.commands.insertContent === 'function') { ed = v.editor; break; } h = h.next; } } if (ed) break; c = c.return; } if (!ed) return 'no_tiptap'; ed.commands.clearContent(); ed.commands.insertContent('<p>这是用于端到端验证抖音文章发布流程的探测性测试正文，请勿视为真实作品内容。本次验证将按新的 preset 流程跑完整链路：上传头图与独立的封面图（3:4 竖图）、填入标题与正文、点击封面编辑完成按钮、再点击底部发布按钮，最后采集 URL 与 toast 确认发布结果。</p>'); return 'ok'; })()"
+    },
+    {
+      "id": "wait_cdn",
+      "action": "wait",
+      "timeout": 3
+    },
+    {
+      "id": "mark_cover",
+      "action": "eval",
+      "script": "(() => { const icons = [...document.querySelectorAll('[class*=addIcon]')]; if (icons.length < 2) return 'only_' + icons.length; icons[1].setAttribute('data-ziniao-cover', '1'); return 'marked'; })()"
+    },
+    {
+      "id": "upload_cover",
+      "action": "upload-react",
+      "trigger": "[data-ziniao-cover=\"1\"]",
+      "file_paths": [
+        "{{vars.cover_image}}"
+      ]
+    },
+    {
+      "id": "wait_cover_render",
+      "action": "wait",
+      "timeout": 4
+    },
+    {
+      "id": "probe_cover_state",
+      "action": "eval",
+      "script": "(() => { const btns = [...document.querySelectorAll('button')].filter(b => b.offsetWidth > 0 && (b.innerText || '').trim()).map(b => ({ text: (b.innerText || '').trim().slice(0, 30), y: Math.round(b.getBoundingClientRect().y), disabled: b.disabled })); const toasts = [...document.querySelectorAll('[class*=toast]')].filter(n => n.offsetWidth > 0 && (n.innerText || '').trim()).map(n => (n.innerText || '').trim().slice(0, 150)); return JSON.stringify({ btns, toasts }); })()"
+    },
+    {
+      "id": "confirm_cover_crop",
+      "action": "eval",
+      "script": "(() => { const modal = document.querySelector('.semi-modal-body, .semi-modal-content'); if (!modal) return 'no_modal'; const b = [...modal.querySelectorAll('button')].find(x => (x.innerText || '').trim() === '确定' && !x.disabled); if (!b) return 'no_confirm_btn'; const pk = Object.keys(b).find(k => k.startsWith('__reactProps')); if (pk && b[pk]?.onClick) { b[pk].onClick(); return 'confirm_clicked'; } b.click(); return 'confirm_native'; })()"
+    },
+    {
+      "id": "wait_confirm",
+      "action": "wait",
+      "timeout": 3
+    },
+    {
+      "id": "probe_after_confirm",
+      "action": "eval",
+      "script": "(() => { const modals = [...document.querySelectorAll('[class*=semi-modal-body]')].filter(n => n.offsetWidth > 0 && n.offsetHeight > 0).map(n => (n.innerText || '').slice(0, 100)); return JSON.stringify({ modals_open: modals.length, modals }); })()"
+    },
+    {
+      "id": "mark_before_publish",
+      "action": "eval",
+      "script": "window.__probe_before = location.href; 'ok'"
+    },
+    {
+      "id": "scroll_bottom",
+      "action": "eval",
+      "script": "window.scrollTo(0, document.documentElement.scrollHeight); 'ok'"
+    },
+    {
+      "id": "click_publish",
+      "action": "eval",
+      "script": "(() => { const btns = [...document.querySelectorAll('button')].filter(e => (e.innerText || '').trim() === '发布' && e.offsetWidth > 0); const btn = btns[btns.length - 1]; if (!btn) return 'no_btn'; const pk = Object.keys(btn).find(k => k.startsWith('__reactProps')); if (pk && btn[pk]?.onClick) { btn[pk].onClick(); return 'clicked_publish'; } btn.click(); return 'fallback_click'; })()"
+    },
+    {
+      "id": "wait_after_publish",
+      "action": "wait",
+      "timeout": 6
+    },
+    {
+      "id": "probe_publish_result",
+      "action": "eval",
+      "script": "(() => { const modals = [...document.querySelectorAll('[class*=semi-modal], [class*=Modal], [role=\"dialog\"]')].filter(n => n.offsetWidth > 0 && n.offsetHeight > 0); const toasts = [...document.querySelectorAll('[class*=toast]')].filter(n => n.offsetWidth > 0 && (n.innerText || '').trim()).map(n => (n.innerText || '').trim().slice(0, 200)); return JSON.stringify({ url: location.href, url_changed: window.__probe_before !== location.href, modals: modals.map(n => ({ cls: n.className, inner_text: (n.innerText || '').slice(0, 300), btns: [...n.querySelectorAll('button')].map(b => (b.innerText || '').trim().slice(0, 30)) })), toasts }); })()"
+    }
+  ],
+  "on_error": {
+    "screenshot": true,
+    "snapshot": true
+  },
+  "default_timeout_ms": 180000
+}

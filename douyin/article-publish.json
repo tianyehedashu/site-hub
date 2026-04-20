@@ -1,11 +1,11 @@
 {
   "name": "Douyin · 文章发布（Article Publish）",
-  "description": "全流程抖音文章发布：上传头图 → 裁剪 → 填标题 → 插入正文 → 等CDN → 发布。需要先登录 creator.douyin.com。",
+  "description": "全流程抖音文章发布：上传头图 → 填标题 → 插入正文 → 等CDN → 上传封面(3:4 竖图) → 确认裁剪 → 发布。需要先登录 creator.douyin.com。",
   "mode": "ui",
   "navigate_url": "https://creator.douyin.com/creator-micro/content/post/article?enter_from=publish_page&media_type=article&type=new",
   "auth": {
     "type": "cookie",
-    "hint": "请先在浏览器登录 creator.douyin.com，并确保 Chrome 已启动 --remote-debugging-port=9222。"
+    "hint": "请先在浏览器登录 creator.douyin.com，并确保 Chrome 已以 --remote-debugging-port 启动（端口可由 ziniao 自管）。"
   },
   "vars": {
     "title": {
@@ -21,7 +21,12 @@
     "head_image": {
       "type": "str",
       "required": true,
-      "description": "头图文件路径（本地）"
+      "description": "头图文件路径（嵌在正文里显示，推荐 16:9，≥1280x720）"
+    },
+    "cover_image": {
+      "type": "str",
+      "required": true,
+      "description": "封面图（推荐页展示用），必须 3:4 竖图、分辨率 ≥1080x1440。与 head_image 可以不同；若传入横图/低分辨率，抖音会拒绝（toast：封面分辨率过低）。"
     }
   },
   "steps": [
@@ -43,18 +48,9 @@
       ]
     },
     {
-      "id": "wait_crop",
+      "id": "wait_after_head",
       "action": "wait",
-      "selector": "button",
-      "text": "确定",
-      "timeout": 15,
-      "continue_on_error": true
-    },
-    {
-      "id": "close_crop",
-      "action": "eval",
-      "script": "(() => { const b = [...document.querySelectorAll('button')].find(b => b.innerText?.trim() === '确定' && b.offsetWidth > 0); if (!b) return 'no_btn'; const pk = Object.keys(b).find(k => k.startsWith('__reactProps')); if (pk && b[pk]?.onClick) { b[pk].onClick(); return 'react_clicked'; } return 'no_onClick'; })()",
-      "continue_on_error": true
+      "timeout": 3
     },
     {
       "id": "reinject_vars",
@@ -77,6 +73,37 @@
       "script": "(async () => { for (let i = 0; i < 60; i++) { await new Promise(r => setTimeout(r, 2000)); const imgs = document.querySelector('.ProseMirror')?.querySelectorAll('img') || []; let cdn = 0, total = imgs.length; imgs.forEach(im => { if (!im.src.startsWith('blob:') && !im.src.startsWith('data:')) cdn++; }); if (total > 0 && cdn >= total) return JSON.stringify({cdn, total, ready: true}); } return JSON.stringify({ready: false}); })()"
     },
     {
+      "id": "mark_cover",
+      "action": "eval",
+      "script": "(() => { const icons = [...document.querySelectorAll('[class*=addIcon]')]; if (icons.length < 2) return 'only_' + icons.length + '_icons'; icons[1].setAttribute('data-ziniao-cover', '1'); return 'marked'; })()"
+    },
+    {
+      "id": "upload_cover",
+      "action": "upload-react",
+      "trigger": "[data-ziniao-cover=\"1\"]",
+      "file_paths": [
+        "{{vars.cover_image}}"
+      ]
+    },
+    {
+      "id": "wait_cover_modal",
+      "action": "wait",
+      "selector": ".semi-modal-body",
+      "state": "visible",
+      "timeout": 10
+    },
+    {
+      "id": "confirm_cover_crop",
+      "action": "eval",
+      "script": "(() => { const modal = document.querySelector('.semi-modal-body, .semi-modal-content'); if (!modal) return 'no_modal'; const b = [...modal.querySelectorAll('button')].find(x => (x.innerText || '').trim() === '确定' && !x.disabled); if (!b) return 'no_confirm_btn'; const pk = Object.keys(b).find(k => k.startsWith('__reactProps')); if (pk && b[pk]?.onClick) { b[pk].onClick(); return 'confirm_clicked'; } b.click(); return 'confirm_native'; })()"
+    },
+    {
+      "id": "wait_modal_close",
+      "action": "eval",
+      "await_promise": true,
+      "script": "(async () => { for (let i = 0; i < 20; i++) { await new Promise(r => setTimeout(r, 300)); const open = document.querySelector('.semi-modal-body'); if (!open) return 'closed'; } return 'still_open'; })()"
+    },
+    {
       "id": "clear_overlays_2",
       "action": "clear-overlay"
     },
@@ -86,21 +113,20 @@
       "script": "window.scrollTo(0, document.documentElement.scrollHeight); 'ok'"
     },
     {
+      "id": "mark_before_publish",
+      "action": "eval",
+      "script": "window.__flow_before_publish = location.href; 'ok'"
+    },
+    {
       "id": "click_publish",
       "action": "eval",
-      "script": "(() => { const btns = [...document.querySelectorAll('button')].filter(e => e.innerText?.trim() === '发布' && e.offsetWidth > 0); const btn = btns[btns.length - 1]; if (!btn) return 'no_btn'; const pk = Object.keys(btn).find(k => k.startsWith('__reactProps')); if (pk && btn[pk]?.onClick) { btn[pk].onClick(); return 'clicked'; } return 'no_onClick'; })()"
+      "script": "(() => { const btns = [...document.querySelectorAll('button')].filter(e => (e.innerText || '').trim() === '发布' && e.offsetWidth > 0 && !e.disabled); const btn = btns[btns.length - 1]; if (!btn) return 'no_btn'; const pk = Object.keys(btn).find(k => k.startsWith('__reactProps')); if (pk && btn[pk]?.onClick) { btn[pk].onClick(); return 'clicked'; } btn.click(); return 'native'; })()"
     },
     {
-      "id": "wait_popup",
-      "action": "wait",
-      "timeout": 5,
-      "state": "idle"
-    },
-    {
-      "id": "click_popup_publish",
+      "id": "wait_publish_result",
       "action": "eval",
-      "script": "(() => { const btns = [...document.querySelectorAll('button')].filter(e => e.innerText?.trim() === '发布' && e.offsetWidth > 0); const popup = btns.find(b => { const r = b.getBoundingClientRect(); return r.y > 500; }); if (!popup) return 'no_popup'; const pk = Object.keys(popup).find(k => k.startsWith('__reactProps')); if (pk && popup[pk]?.onClick) { popup[pk].onClick(); return 'popup_clicked'; } return 'popup_no_onClick'; })()",
-      "continue_on_error": true
+      "await_promise": true,
+      "script": "(async () => { for (let i = 0; i < 20; i++) { await new Promise(r => setTimeout(r, 500)); if (location.href !== window.__flow_before_publish) return JSON.stringify({ok: true, reason: 'url_changed', url: location.href}); const toasts = [...document.querySelectorAll('[class*=toast]')].map(n => (n.innerText || '').trim()).filter(Boolean); const ok = toasts.find(t => t.includes('发布成功')); if (ok) return JSON.stringify({ok: true, reason: 'toast', toast: ok}); const err = toasts.find(t => t && !t.includes('发布成功')); if (err && i > 4) return JSON.stringify({ok: false, reason: 'toast_error', toast: err}); } return JSON.stringify({ok: false, reason: 'timeout', url: location.href}); })()"
     }
   ],
   "on_error": {
