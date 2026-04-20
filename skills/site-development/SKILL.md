@@ -291,7 +291,13 @@ Key rules:
 
 ## Step 2c: `mode: ui` for UI-Only Flows (Tier 2.5)
 
-Use `mode: ui` when the site has **no public API** (or you need to stitch login + form fill + export button) — everything that historically forced you into fragile ad-hoc scripts. The preset declares `steps[]`; each step is an ordered UI action that reuses the same primitives agents can call directly (`click`, `fill`, `type_text`, `press_key`, `navigate`, `wait`, `hover`, `dblclick`, `upload`, `extract`, `fetch`).
+Use `mode: ui` when the site has **no public API** (or you need to stitch login + form fill + export button) — everything that historically forced you into fragile ad-hoc scripts. The preset declares `steps[]`; each step is an ordered UI action that reuses the same primitives agents can call directly. Full whitelist (see [docs/site-ui-flows.md §3.2](../../../docs/site-ui-flows.md)):
+
+- **Interaction**: `click`, `fill`, `type_text`, `insert_text` (CDP `Input.insertText`, Slate/ProseMirror), `press_key`, `hover`, `dblclick`, `upload`, `upload-hijack` (SPA 隐藏 input), `upload-react` (React/SPA via CDP `setInterceptFileChooserDialog`)
+- **Navigation / waits**: `navigate`, `wait`
+- **DOM utilities**: `clear-overlay` (主动清弹窗/遮罩，`click` 与 `upload-hijack` 内部已自动先跑), `screenshot`, `snapshot`
+- **Scripting**: `eval` (返回值存入 `step.value`), `extract` (`kind: text | html | attribute | querySelectorAll | table | eval`), `fetch` (inline HTTP，带浏览器 cookie)
+- **Flow glue**: `inject-file` (读取本地文本写入 `window[var]`，喂大 HTML/JSON 给后续 `eval`), `inject-vars` (SPA 上下文重置后重新注入 `window.__flow_vars`；`_flow_run` 启动已自动跑一次，大值 ≥50KB 会单独注入)
 
 ```jsonc
 {
