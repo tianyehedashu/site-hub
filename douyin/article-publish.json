@@ -70,7 +70,7 @@
       "id": "wait_cdn",
       "action": "eval",
       "await_promise": true,
-      "script": "(async () => { for (let i = 0; i < 60; i++) { await new Promise(r => setTimeout(r, 2000)); const imgs = document.querySelector('.ProseMirror')?.querySelectorAll('img') || []; let cdn = 0, total = imgs.length; imgs.forEach(im => { if (!im.src.startsWith('blob:') && !im.src.startsWith('data:')) cdn++; }); if (total > 0 && cdn >= total) return JSON.stringify({cdn, total, ready: true}); } return JSON.stringify({ready: false}); })()"
+      "script": "(async () => { for (let i = 0; i < 60; i++) { const imgs = document.querySelector('.ProseMirror')?.querySelectorAll('img') || []; const total = imgs.length; if (total === 0) return JSON.stringify({cdn: 0, total: 0, ready: true, skipped: 'no_body_images'}); let cdn = 0; imgs.forEach(im => { if (!im.src.startsWith('blob:') && !im.src.startsWith('data:')) cdn++; }); if (cdn >= total) return JSON.stringify({cdn, total, ready: true}); await new Promise(r => setTimeout(r, 2000)); } return JSON.stringify({ready: false}); })()"
     },
     {
       "id": "mark_cover",
