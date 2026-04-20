@@ -10,9 +10,48 @@ allowed-tools: Bash(ziniao:*)
 
 ## 环境
 
-1. `ziniao session list` 为空时自行拉起：`ziniao launch --user-data-dir "%LOCALAPPDATA%\Google\Chrome\User Data" --url https://labs.google/fx/tools/flow`
-2. `ziniao google-flow auth-session` 验证，拿到 `access_token` 即可开跑
-3. `ziniao site update` 保持 `site-hub/google-flow` preset 最新
+### 推荐：**独立 Profile**（登录一次永久复用）
+
+Windows PowerShell：
+
+```powershell
+$UDD = "$env:LOCALAPPDATA\ziniao\chrome-profile\google-flow"
+New-Item -ItemType Directory -Force -Path $UDD | Out-Null
+ziniao launch --user-data-dir $UDD --url https://labs.google/fx/tools/flow
+```
+
+macOS / Linux：
+
+```bash
+UDD="$HOME/.ziniao/chrome-profile/google-flow"
+mkdir -p "$UDD"
+ziniao launch --user-data-dir "$UDD" --url https://labs.google/fx/tools/flow
+```
+
+**首次**在弹出的窗口里完成 Google 登录（含二步验证），Cookie 写入该 UDD；之后长期复用，再跑不需要登录。ziniao launch 的 CDP 端口**动态分配**（不固定 9222），以 `ziniao session list` 显示的为准。
+
+> ❗ **不要用**默认 Chrome User Data 目录（Windows `%LOCALAPPDATA%\Google\Chrome\User Data` / macOS `~/Library/Application Support/Google/Chrome` / Linux `~/.config/google-chrome`）：
+> 1. **Chrome 136+ 会静默忽略 `--remote-debugging-port`**（进程命令行里带了也不真正绑端口），ziniao 永远接不上 CDP，表现为 "未检测到可连接的远程调试端口"。
+> 2. 日常 Chrome 开着就会 singleton lock 冲突，拉起直接失败。
+> 3. 用自动化共享个人浏览数据本身也是坏习惯（历史/扩展/同步污染）。
+
+### 连接前三步体检（防止连到错的 Chrome / 错的 Profile）
+
+```bash
+# 1) 当前 ziniao 登记的会话（active 的那条要对上你刚 launch 的独立 UDD）
+ziniao session list
+
+# 2) 页面 Cookie 名应含 Google 登录（SID/HSID/SAPISID 之一；只有 _ga 即未登录）
+ziniao eval "document.cookie.split(';').map(c=>c.trim().split('=')[0]).join('|')"
+
+# 3) access_token 必须非空（body 是 {} 即 Profile 没登录）
+ziniao google-flow auth-session
+```
+
+任何一条不满足，先修环境（通常是没登录 / Profile 选错 / 连到了历史残留的 Chrome）再跑生成。
+
+### 保持 preset 最新
+`ziniao site update`
 
 ## 子命令一览（`ziniao google-flow …`）
 
@@ -277,8 +316,9 @@ Flow / Labs 的 webpack bundle 里可能还出现 `IMAGEN_3_5_FAST`、`VEO_*`（
 | reCAPTCHA 403 | 确认页面已加载 Flow（需要 `grecaptcha.enterprise` 可用）；刷新页面重试 |
 | 终端卡死 / JSON 巨大 | 使用 `--save-images`；勿在无 `-o` 时用 `--json` 处理大 base64 |
 | 上传失败 | 图 ≥ 约 64×64；单文件 ≤ 20MB（Google 侧限制） |
-| `session` 无 token | 使用已登录 Profile 启动 Chrome 并打开 Flow |
-| `没有活动的浏览器会话` | `ziniao launch --user-data-dir "%LOCALAPPDATA%\Google\Chrome\User Data" --url https://labs.google/fx/tools/flow` |
+| `session` body `{}` / 无 `access_token` | Profile 没登录 Google。按"环境 → 推荐"的独立 Profile 登录一次；或直接 `ziniao session list` 看 active 会话对应的 UDD 是不是预期那个 |
+| `没有活动的浏览器会话` | 按"环境 → 推荐"一节用独立 Profile 启动 Chrome（`ziniao launch --user-data-dir <独立目录>`；**不要用默认 User Data**，Chrome 136+ 会静默禁用 CDP） |
+| `未检测到可连接的远程调试端口` / Chrome 起来了端口却没监听 | 几乎都是 `--user-data-dir` 指向了 Chrome 默认目录 → Chrome 136+ 静默 drop `--remote-debugging-port`。换成独立 UDD 即可（见"环境 → 推荐"） |
 | `No such option: --timeout` | 全局选项：`ziniao --timeout 480 google-flow imagen-generate ...` |
 | fifeUrl 下载失败 | URL 有效期约 6 小时；过期需重新生成 |
 | `RESOURCE_EXHAUSTED` / `PUBLIC_ERROR_PER_MODEL_DAILY_QUOTA_REACHED` | 当前账号当日该模型配额耗尽；最快解法：`imagen-generate` 加 `-V fallback_model=NARWHAL`（或 `GEM_PIX_2`），preset 会自动换池重试；或手动改 `model_name_type` 切到 Imagen/另一 Nano |
