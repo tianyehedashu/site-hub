@@ -26,6 +26,11 @@
   },
   "steps": [
     {
+      "id": "nav_to_editor",
+      "action": "navigate",
+      "url": "https://creator.douyin.com/creator-micro/content/post/article?enter_from=publish_page&media_type=article&type=new"
+    },
+    {
       "id": "clear_overlays",
       "action": "clear-overlay"
     },
