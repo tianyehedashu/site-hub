@@ -21,3 +21,7 @@ ziniao --json 1688 image-search -V image=./your.jpg
 ```
 
 第三方声明见同目录 [NOTICE.md](NOTICE.md)。
+
+## Agent 技能
+
+站点内技能路径：`1688/skills/1688-sourcing/SKILL.md`。安装到 Cursor 等：`ziniao skill install 1688-sourcing`（需已 `ziniao site update` 拉取含本目录的 site-hub）。

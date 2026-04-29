@@ -6,7 +6,7 @@ allowed-tools: Bash(ziniao:*)
 
 # 1688 货源（site-hub）
 
-预设与参数见同仓库 **[1688/README.md](../../1688/README.md)**。
+预设与参数见本站点目录 **[README.md](../README.md)**。
 
 要点：
 
