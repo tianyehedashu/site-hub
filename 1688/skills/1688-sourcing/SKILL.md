@@ -13,4 +13,3 @@ allowed-tools: Bash(ziniao:*)
 1. 确认已安装站点仓库：`ziniao site update site-hub`（或等价方式使 `1688/`* 预设出现在 `ziniao site list` 且来源为 `[repo]`）。
 2. 在已登录 1688 的浏览器会话中，按 [references/PRESETS.md](references/PRESETS.md) 选用预设并传 `-V`。
 3. 判读结果：优先看 `--json` 的 `success` 与 `data` / `error`；详情页遇验证码见 PRESETS 中 `offer_page_captcha` 说明。
-
