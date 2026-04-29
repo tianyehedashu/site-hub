@@ -82,7 +82,7 @@ ziniao --json 1688 supplier -V shop_url=https://example.1688.com
 
 ## `1688/media-save`
 
-- **说明**：从详情 HTML 解析 `cbu01` 图片 URL；配合 CLI `**--save-images <前缀>`** 按 `media_contract` 落盘。
+- **说明**：从详情 HTML 解析 `cbu01` 图片 URL；配合 CLI **`--save-images <前缀>`** 按 `media_contract` 落盘。
 - **navigate_url**：`https://detail.1688.com/offer/{{offer_id}}.html`
 - **变量**：同 `1688/product` 的 `offer_id`（必填 str）。
 - **示例**
