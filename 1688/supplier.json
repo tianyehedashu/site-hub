@@ -1,0 +1,23 @@
+{
+  "name": "1688 · 店铺摘要（HTML）",
+  "description": "GET shop homepage HTML — page title + optional companyName JSON snippet.",
+  "auth": {
+    "type": "cookie",
+    "hint": "需能打开店铺域名（如 xxx.1688.com）"
+  },
+  "navigate_url": "{{shop_url}}",
+  "mode": "js",
+  "script": "",
+  "_ziniao_1688_route": "supplier",
+  "vars": {
+    "shop_url": {
+      "type": "str",
+      "required": true,
+      "description": "店铺首页 URL",
+      "example": "https://shop1234567890.1688.com"
+    }
+  },
+  "body": {
+    "shop_url": "{{shop_url}}"
+  }
+}

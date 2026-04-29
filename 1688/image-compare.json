@@ -1,0 +1,34 @@
+{
+  "name": "1688 · 以图比价（多页聚合）",
+  "description": "Same as image-search but pulls multiple beginPage values and returns price_min/max/median over merged offers.",
+  "auth": {
+    "type": "cookie",
+    "hint": "在本标签页登录 1688；先访问 www.1688.com 确保 mtop cookie"
+  },
+  "navigate_url": "https://www.1688.com/",
+  "mode": "js",
+  "script": "",
+  "_ziniao_1688_route": "image-compare",
+  "vars": {
+    "image": {
+      "type": "file",
+      "required": true,
+      "description": "待搜图片"
+    },
+    "max_pages": {
+      "type": "int",
+      "default": 3,
+      "description": "最多拉取页数（1–10）"
+    },
+    "page_size": {
+      "type": "int",
+      "default": 40,
+      "description": "每页条数"
+    }
+  },
+  "body": {
+    "image": "{{image}}",
+    "max_pages": "{{max_pages}}",
+    "page_size": "{{page_size}}"
+  }
+}

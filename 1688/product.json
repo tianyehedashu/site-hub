@@ -1,0 +1,23 @@
+{
+  "name": "1688 · 商品详情（HTML 摘要）",
+  "description": "Fetch offer HTML and extract title/subject + sample cbu01 image URLs (best-effort; 1688 改版可能需调 regex).",
+  "auth": {
+    "type": "cookie",
+    "hint": "登录态下访问 detail.1688.com"
+  },
+  "navigate_url": "https://detail.1688.com/offer/{{offer_id}}.html",
+  "mode": "js",
+  "script": "",
+  "_ziniao_1688_route": "product",
+  "vars": {
+    "offer_id": {
+      "type": "str",
+      "required": true,
+      "description": "offer ID（详情 URL 中数字段）",
+      "example": "645493882755"
+    }
+  },
+  "body": {
+    "offer_id": "{{offer_id}}"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "name": "1688 · 详情图落盘（media_contract）",
+  "description": "Parse cbu01 image URLs from offer HTML; use CLI --save-images <prefix> to download.",
+  "auth": {
+    "type": "cookie",
+    "hint": "登录态"
+  },
+  "navigate_url": "https://detail.1688.com/offer/{{offer_id}}.html",
+  "mode": "js",
+  "script": "",
+  "_ziniao_1688_route": "media-save",
+  "vars": {
+    "offer_id": {
+      "type": "str",
+      "required": true,
+      "description": "offer ID"
+    }
+  },
+  "body": {
+    "offer_id": "{{offer_id}}"
+  },
+  "media_contract": [
+    {
+      "items_at": "items",
+      "fields": [{ "key": "image", "source": "url" }]
+    }
+  ]
+}
