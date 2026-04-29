@@ -1,15 +1,114 @@
 ---
 name: 1688-sourcing
-description: 1688 找品与 ziniao 预设（图搜、详情、店铺、落盘）；触发词：1688、以图搜款、跨境找品、site-hub 1688。
+description: 1688 找品与 ziniao 预设（图搜、详情、店铺、落盘）；触发词：1688、以图搜款、跨境找品、供应商初筛、跨境货源、site-hub 1688。
 allowed-tools: Bash(ziniao:*)
 ---
 
-# 1688 货源（ziniao site-hub）
+# 1688 货源初筛（ziniao site-hub）
 
-本 skill **自包含**：预设 ID、变量、CLI 示例与成功/失败语义见 **[references/PRESETS.md](references/PRESETS.md)**；第三方说明见 **[references/THIRD_PARTY.md](references/THIRD_PARTY.md)**。不要依赖本目录以外的 Markdown 或仓库文件来完成决策。
+本 skill 面向跨境电商运营的 **1688 货源初筛**：用图片找相似款、做粗略价格带判断、确认商品详情页是否有效、保存详情图样本，并记录店铺页的轻量信号。它不替代人工验厂、旺旺沟通、样品测试、价格谈判，也不声称能稳定获取销量、库存、MOQ、资质、发货时效或售后承诺。
 
-## 快速入口
+本目录自包含：预设 ID、参数、返回语义与 CLI 示例见 [references/PRESETS.md](references/PRESETS.md)；第三方说明见 [references/THIRD_PARTY.md](references/THIRD_PARTY.md)。不要依赖本 skill 目录外的 Markdown 或仓库文件来完成业务判断。
 
-1. 确认已安装站点仓库：`ziniao site update site-hub`（或等价方式使 `1688/*` 预设出现在 `ziniao site list` 且来源为 `[repo]`）。
-2. 在已登录 1688 的浏览器会话中，按 [references/PRESETS.md](references/PRESETS.md) 选用预设并传 `-V`。
-3. 判读结果：优先看 `--json` 的 `success` 与 `data` / `error`；详情页遇验证码见 PRESETS 中 `offer_page_captcha` 说明。
+## 适用场景
+
+- **图片找同款/近似款**：已有竞品图、买家秀、工厂图，希望从 1688 找候选供货链接。
+- **粗略价格带判断**：同一张参考图返回多个 offer 后，用多页结果估算价格分布，辅助判断是否值得继续谈。
+- **详情页有效性确认**：对候选 `offer_id` 做最小校验，避免把 404、下架、验证码页当有效货源。
+- **素材与留档**：保存详情页图片样本，便于内部选品会、Listing 草稿、供应商沟通前的证据整理。
+- **店铺入口记录**：对候选店铺 URL 抽取标题/公司名片段，作为后续人工核查入口。
+
+## 能力边界
+
+- 当前预设主要是 **浏览器登录态 + 页面内 JS + HTML/结果 JSON 启发式解析**，1688 改版或风控会影响结果。
+- `image-compare` 的价格统计来自图搜返回 offer 的可解析价格字段，只能用于 **初筛价格带**，不能当最终采购价。
+- `product` 只抽取标题、`subject`、部分 `cbu01` 图片 URL 等轻量字段；无字段不等于商品一定无效，需结合 `error` 判断。
+- `supplier` 只做店铺首页轻量摘要，不等价于供应商资质审计。
+- 遇到 `offer_page_captcha`，先在浏览器完成登录/验证；不要把验证码页当业务失败，也不要把它当成功正例。
+
+## 标准工作流
+
+### 1. 图搜找候选
+
+先确认 1688 预设来源是 `[repo]`：
+
+```bash
+ziniao site list
+```
+
+用参考图搜索第一页：
+
+```bash
+ziniao --json 1688 image-search -V image=./ref.jpg -V begin_page=1 -V page_size=40
+```
+
+运营判断重点：
+
+- 优先看返回 offer 的标题、图片相似度、价格字段是否存在。
+- 不要只看最低价；同图多卖家低价可能对应规格差异、低起批量展示或非目标材质。
+- 从结果中挑 3–10 个候选 `offer_id` 进入详情校验。
+
+### 2. 做粗略价格带
+
+```bash
+ziniao --json 1688 image-compare -V image=./ref.jpg -V max_pages=3 -V page_size=40
+```
+
+运营判断重点：
+
+- `price_min` / `price_max` / `price_median` 仅用于判断“是否有继续沟通空间”。
+- 若样本量很少或价格极端分散，应回到图搜结果人工排除非同款、配件、不同规格。
+- 价格带只能支撑初筛，不可直接写进采购结论。
+
+### 3. 校验候选详情
+
+```bash
+ziniao --json 1688 product -V offer_id=<候选offer_id>
+```
+
+判读：
+
+- `success: true` 且 `data.ok: true`：可作为有效候选继续人工核查。
+- `offer_page_not_found`：404、下架或无效页，不算候选。
+- `offer_page_captcha`：当前会话被风控/验证码拦截，先完成登录验证后重试。
+
+### 4. 保存图片样本
+
+```bash
+ziniao --json 1688 media-save -V offer_id=<候选offer_id> --save-images exports/1688/offer
+```
+
+用途：
+
+- 内部选品会留档。
+- 与竞品图、目标 Listing 图片做人工对比。
+- 作为联系供应商前的资料包素材。注意：图片可用性与授权仍需人工确认。
+
+### 5. 记录店铺入口
+
+```bash
+ziniao --json 1688 supplier -V shop_url=https://xxx.1688.com
+```
+
+用途：
+
+- 给候选 offer 关联店铺入口。
+- 记录页面标题或 `companyName` 片段，方便后续人工进店查看经营类目、联系方式、资质、发货地等。
+
+## 输出给运营的建议格式
+
+交付时不要只贴 JSON。建议按下面结构输出：
+
+- **样本来源**：参考图/关键词、抓取时间、登录会话是否正常。
+- **候选数量**：图搜返回数量、进入详情校验数量、有效详情数量。
+- **价格观察**：仅列价格带和中位数，明确“初筛参考，非最终采购价”。
+- **排除项**：404/下架、验证码拦截、图片明显不匹配、价格字段缺失。
+- **下一步动作**：人工进店核查、旺旺沟通、索样、确认规格/包装/起订量/授权。
+
+## 常见问题
+
+- **没有 `_m_h5_tk` / `no_m_h5_tk`**：先在当前标签打开 `https://www.1688.com/` 并刷新，再重跑。
+- **返回 `offer_page_captcha`**：当前会话触发风控，先手动完成验证；这不是有效商品页。
+- **图片落盘为空**：可能是详情页无 `cbu01` 图、页面模板变化、下架页或验证码页。
+- **业务结论不确定**：保守输出“需人工复核”，不要补写不存在的数据。
+
