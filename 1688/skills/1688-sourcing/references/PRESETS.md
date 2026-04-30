@@ -1,6 +1,6 @@
 # 1688 预设与变量（ziniao CLI）
 
-预设 ID 形如 `1688/<action>`。均需当前浏览器标签页具备 **1688 登录 cookie**；图搜类建议先在本标签打开 `https://www.1688.com/` 以便写入 `_m_h5_tk` 等 mtop 相关 cookie。
+预设 ID 形如 `1688/<action>`。均需当前浏览器标签页具备 **1688 登录 cookie**；**图搜**（`image-*`）建议先在本标签打开 `https://www.1688.com/` 以便写入 `_m_h5_tk` 等 mtop 相关 cookie。`keyword-search` 无图、无 mtop 签名校验，仍建议已登录以降低空结果或风控。
 
 全局选项：`ziniao --json …` 输出 `{ success, data, error }` 信封；`mode: js` 返回体会出现在 `data` 内（解析后的 JSON 字段）。
 
@@ -23,6 +23,28 @@
 ```bash
 ziniao --json 1688 image-search -V image=./ref.jpg -V begin_page=1 -V page_size=40
 ```
+
+## `1688/keyword-search`
+
+- **说明**：单页**关键词**搜款（`search.1688.com/service/marketOfferResultViewService`，与 PC 搜索异步同源；**不需要参考图**）。脚本请求已固定附带 **`charset=utf8`**（缺省时服务端常返回空 `offerList` 而 `totalCount` 异常，即 degraded）。
+- **navigate_url**：`https://s.1688.com/selloffer/offer_search.htm?keywords={{q}}`（与关键词一致，便于 Referer / 会话对齐；**勿在 login.taobao.com 标签执行**）。
+- **变量**
+
+
+| 变量           | 类型  | 必填  | 默认  | 说明            |
+| ------------ | --- | --- | --- | ------------- |
+| `q`          | str | 是   | —   | 搜索关键词         |
+| `begin_page` | int | 否   | 1   | 结果页码（从 1 起）   |
+| `page_size`  | int | 否   | 40  | 每页条数（约 10–60） |
+
+
+- **示例**
+
+```bash
+ziniao --json 1688 keyword-search -V q=数据线 -V begin_page=1 -V page_size=40
+```
+
+- **返回**：成功时 `ok: true`，`offers` 为原始列表；`offers_lite` 为前 80 条摘要（`offer_id` / `subject` / 主图 URL）。`used_params` 为 `minimal` 或 `async_compat`（首轮仍空列表时再带异步兼容参数）。若计数与列表仍不一致会带 `degraded` + `degraded_hint`。失败常见 `missing_keyword`、`wrong_tab`（停在登录中转页）、`keyword_search_upstream` 等。
 
 ## `1688/image-compare`
 
@@ -102,6 +124,7 @@ ziniao --json 1688 media-save -V offer_id=<在售数字ID> --save-images exports
 | `media-save`                     | `ok: true` 且 `items` 非空                         | `no_offer_images`（无 cbu01 图，多为无效页或模板变更）                         |
 | `supplier`                       | `ok: true`                                      | `shop_page_not_found`                                           |
 | `image-search` / `image-compare` | 无统一 `ok` 字段时以返回 `error` 键为准；成功时含 `offers` 或统计字段 | `missing_image`、`no_m_h5_tk`、`upload_failed` 等                  |
+| `keyword-search`               | `ok: true` 时含 `offers`、`searchUrl`、`totalCount` / `pageCount` 等 | `missing_keyword`、`keyword_search_upstream`、`keyword_search_request_failed` 等 |
 
 
 **正例**：须在**已登录**且**未出现验证码拦截**的会话中，对**当前在售** `offer_id` 调用；未登录环境常见 `offer_page_captcha`，不算成功正例。

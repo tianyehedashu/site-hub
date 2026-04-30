@@ -1,8 +1,8 @@
-"""1688 site presets — browser-context mtop image upload + search APIs.
+"""1688 site presets — browser-context search APIs.
 
 Embeds MIT-licensed blueimp-md5 (``_md5_min.js``, IIFE root ``globalThis``)
-for mtop H5 signatures. Public flow mirrors community reverse-engineering
-(mtop upload + ``imageSearchOfferResultViewService``); 1688 may change
+for mtop H5 signatures on **image** flows. Keyword search calls
+``marketOfferResultViewService`` (no image / no mtop sign). 1688 may change
 endpoints — errors return ``error`` / ``hint`` for agents.
 """
 
@@ -330,6 +330,210 @@ def _image_compare_js() -> str:
     return _wrap_async(_read_md5(), _image_compare_block())
 
 
+def _keyword_search_js() -> str:
+    """Text search — no md5; XHR + search页 Referer; optional mtop cookie warmup."""
+    return r"""(async () => {
+  const getCk = (name) => {
+    const parts = document.cookie.split(';');
+    for (const p of parts) {
+      const s = p.trim();
+      if (s.startsWith(name + '=')) return decodeURIComponent(s.slice(name.length + 1));
+    }
+    return '';
+  };
+  const xhrText = (method, url, headers, body) =>
+    new Promise((resolve, reject) => {
+      const x = new XMLHttpRequest();
+      x.open(method, url, true);
+      x.withCredentials = true;
+      const h = {
+        accept: 'application/json, text/plain, */*',
+        ...(headers || {}),
+      };
+      for (const [k, v] of Object.entries(h)) {
+        if (v != null && v !== '') x.setRequestHeader(k, String(v));
+      }
+      x.onload = () => resolve(x.responseText || '');
+      x.onerror = () => reject(new Error('xhr_failed'));
+      x.send(body == null ? null : body);
+    });
+  const xhrJson = async (method, url, headers, body) => JSON.parse(await xhrText(method, url, headers, body));
+  const JSV = '2.7.2';
+  const VER = '1.0';
+  const API_KEY = '12574478';
+  const TOKEN_API = 'mtop.ovs.traffic.landing.seotaglist.queryHotSearchWord';
+
+  const b = typeof __BODY__ === 'string' ? JSON.parse(__BODY__) : __BODY__;
+  const keyword = String(b.q || b.keyword || '').trim();
+  if (!keyword) {
+    return JSON.stringify({
+      error: 'missing_keyword',
+      hint: 'Pass -V q=关键词（或 body 字段 keyword）',
+    });
+  }
+
+  const host = String(location.hostname || '');
+  if (host === 'login.taobao.com' || host === 'login.1688.com') {
+    return JSON.stringify({
+      error: 'wrong_tab',
+      hint: '当前标签在登录中转页，Cookie 不属于 1688 搜索域；请完成登录后切到 www.1688.com 或 s.1688.com 再执行本预设。',
+      action: 'ziniao navigate "https://www.1688.com/"',
+      active_hostname: host,
+    });
+  }
+
+  const searchReferrer =
+    'https://s.1688.com/selloffer/offer_search.htm?keywords=' + encodeURIComponent(keyword);
+
+  try {
+    await xhrText(
+      'GET',
+      'https://log.mmstat.com/eg.js?t=' + Date.now(),
+      { referer: searchReferrer, origin: 'https://s.1688.com' },
+      null,
+    );
+  } catch (e) {}
+
+  let tk = getCk('_m_h5_tk');
+  if (!tk) {
+    const tp = new URLSearchParams({
+      jsv: JSV,
+      appKey: API_KEY,
+      t: String(Date.now()),
+      api: TOKEN_API,
+      v: VER,
+      type: 'jsonp',
+      dataType: 'jsonp',
+      callback: 'mtopjsonp1',
+      preventFallback: 'true',
+      data: '{}',
+    });
+    try {
+      await xhrText(
+        'GET',
+        'https://h5api.m.1688.com/h5/' + TOKEN_API.toLowerCase() + '/' + VER + '/?' + tp.toString(),
+        { referer: 'https://www.1688.com/', origin: 'https://www.1688.com' },
+        null,
+      );
+    } catch (e2) {}
+    tk = getCk('_m_h5_tk');
+  }
+
+  const beginPage = Math.max(1, parseInt(String(b.begin_page || b.beginPage || '1'), 10) || 1);
+  const pageSize = Math.min(60, Math.max(10, parseInt(String(b.page_size || b.pageSize || '40'), 10) || 40));
+
+  const parseInner = (listJson) => {
+    const root = listJson && listJson.data;
+    if (!root) return { err: 'keyword_search_bad_response', root: null, inner: null };
+    const codeOk = root.code === '200' || root.code === 200;
+    if (!codeOk) return { err: 'keyword_search_upstream', root, inner: null };
+    const inner = root.data || {};
+    return { err: null, root, inner };
+  };
+
+  const fetchSvc = async (sp) => {
+    const url = 'https://search.1688.com/service/marketOfferResultViewService?' + sp.toString();
+    return xhrJson('GET', url, { origin: 'https://s.1688.com', referer: searchReferrer }, null);
+  };
+
+  let listJson;
+  try {
+    listJson = await fetchSvc(
+      new URLSearchParams({
+        keywords: keyword,
+        beginPage: String(beginPage),
+        pageSize: String(pageSize),
+        // 1688 PC 搜索同源接口：无 charset 时常返回 totalCount 占位而 offerList 为空（degraded）。
+        charset: 'utf8',
+      }),
+    );
+  } catch (e) {
+    return JSON.stringify({
+      error: 'keyword_search_request_failed',
+      hint: String(e && e.message ? e.message : e),
+    });
+  }
+
+  let parsed = parseInner(listJson);
+  if (parsed.err === 'keyword_search_bad_response') {
+    return JSON.stringify({
+      error: parsed.err,
+      hint: 'Empty or non-JSON response from marketOfferResultViewService',
+      detail: typeof listJson === 'object' ? listJson : String(listJson).slice(0, 500),
+    });
+  }
+  if (parsed.err === 'keyword_search_upstream') {
+    return JSON.stringify({
+      error: parsed.err,
+      code: parsed.root.code,
+      msg: parsed.root.msg,
+      detail: parsed.root,
+    });
+  }
+
+  let inner = parsed.inner;
+  let offerList = inner.offerList || [];
+  let usedParams = 'minimal';
+
+  if (offerList.length === 0) {
+    try {
+      listJson = await fetchSvc(
+        new URLSearchParams({
+          keywords: keyword,
+          beginPage: String(beginPage),
+          pageSize: String(pageSize),
+          charset: 'utf8',
+          startIndex: '0',
+          asyncCount: String(pageSize),
+          offset: String(Math.max(0, (beginPage - 1) * pageSize)),
+          n: 'y',
+          async: 'true',
+          enableAsync: 'true',
+          rpcflag: 'new',
+          templateConfigName: 'marketOfferresult',
+        }),
+      );
+      parsed = parseInner(listJson);
+      if (!parsed.err) {
+        inner = parsed.inner;
+        offerList = inner.offerList || [];
+        usedParams = 'async_compat';
+      }
+    } catch (e3) {}
+  }
+
+  const pageCount = inner.pageCount;
+  const totalCount = inner.totalCount;
+  const controller = inner.controller || null;
+  const offersLite = offerList.slice(0, 80).map((o) => ({
+    offer_id: o.id != null ? String(o.id) : null,
+    subject: (o.information && o.information.subject) || null,
+    image: (o.image && o.image.imgUrl) || null,
+  }));
+  const searchUrl = searchReferrer;
+  const degraded = offerList.length === 0 && (totalCount > 0 || (controller && controller.nextStartIndex > 0));
+  return JSON.stringify({
+    ok: true,
+    q: keyword,
+    beginPage,
+    pageSize,
+    pageCount,
+    totalCount,
+    count: offerList.length,
+    offers: offerList,
+    offers_lite: offersLite,
+    searchUrl,
+    used_params: usedParams,
+    degraded: degraded || undefined,
+    degraded_hint:
+      degraded
+        ? '服务端返回计数与列表不一致或异步块为空，请到 searchUrl 人工确认或稍后重试。'
+        : undefined,
+    note: 'XHR + Referer；query 含 charset=utf8；空列表时再试 async_compat（offset=分页起点）。',
+  });
+})()"""
+
+
 def _product_js() -> str:
     return r"""(async () => {
   const b = typeof __BODY__ === 'string' ? JSON.parse(__BODY__) : __BODY__;
@@ -372,7 +576,7 @@ def _product_js() -> str:
       ok: false,
       error: 'offer_page_not_found',
       hint: '非有效商品详情页（常见为 404 / 已下架）。请换有效 offer_id，或先图搜从结果里取 id。',
-      action: 'ziniao --json 1688 image-search -V image=你的图.jpg',
+      action: 'ziniao --json 1688 keyword-search -V q=关键词 或 ziniao --json 1688 image-search -V image=图.jpg',
       offer_id: oid,
       detail_url: url,
       title: title || null,
@@ -476,6 +680,10 @@ class Site1688Plugin(SitePlugin):
         elif route == "media-save":
             request["mode"] = "js"
             request["script"] = _media_save_js()
+            _strip_route(request)
+        elif route == "keyword-search":
+            request["mode"] = "js"
+            request["script"] = _keyword_search_js()
             _strip_route(request)
         return request
 

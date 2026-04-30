@@ -26,6 +26,12 @@ def test_image_search_preset_route() -> None:
     assert preset.get("mode") == "js"
 
 
+def test_keyword_search_preset_route() -> None:
+    preset = json.loads((_ROOT / "1688" / "keyword-search.json").read_text(encoding="utf-8"))
+    assert preset.get("_ziniao_1688_route") == "keyword-search"
+    assert preset.get("mode") == "js"
+
+
 def test_before_fetch_strips_route_and_injects_script() -> None:
     mod = _load_1688_module()
     plugin = mod.Site1688Plugin()
@@ -40,22 +46,37 @@ def test_before_fetch_strips_route_and_injects_script() -> None:
 
 
 @pytest.mark.parametrize(
-    "name,body_obj",
+    "name,body_obj,needle",
     [
-        ("image-compare", {"image": "e30=", "max_pages": 2, "page_size": 40}),
-        ("product", {"offer_id": "123"}),
-        ("supplier", {"shop_url": "https://example.1688.com"}),
-        ("media-save", {"offer_id": "123"}),
+        ("image-compare", {"image": "e30=", "max_pages": 2, "page_size": 40}, "imageSearchOfferResultViewService"),
+        ("keyword-search", {"q": "test", "begin_page": 1, "page_size": 20}, "marketOfferResultViewService"),
+        ("product", {"offer_id": "123"}, "detail.1688.com/offer/"),
+        ("supplier", {"shop_url": "https://example.1688.com"}, "companyName"),
+        ("media-save", {"offer_id": "123"}, "cbu01"),
     ],
 )
-def test_routes_inject_script(name: str, body_obj: dict) -> None:
+def test_routes_inject_script(name: str, body_obj: dict, needle: str) -> None:
     mod = _load_1688_module()
     plugin = mod.Site1688Plugin()
     spec = json.loads((_ROOT / "1688" / f"{name}.json").read_text(encoding="utf-8"))
     spec["body"] = json.dumps(body_obj)
     out = plugin.before_fetch(spec)
     assert out.get("_ziniao_1688_route") is None
-    assert len(out.get("script", "")) > 50
+    script = out.get("script", "")
+    assert len(script) > 50
+    assert needle in script
+
+
+def test_keyword_search_script_includes_charset_utf8() -> None:
+    """Regression: without charset=utf8, marketOfferResultViewService often returns empty offerList."""
+    mod = _load_1688_module()
+    plugin = mod.Site1688Plugin()
+    spec = json.loads((_ROOT / "1688" / "keyword-search.json").read_text(encoding="utf-8"))
+    spec["body"] = json.dumps({"q": "test", "begin_page": 1, "page_size": 20})
+    out = plugin.before_fetch(spec)
+    script = out.get("script", "")
+    assert "charset" in script
+    assert "utf8" in script
 
 
 def test_missing_md5_error_script() -> None:

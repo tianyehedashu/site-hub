@@ -1,6 +1,6 @@
 # 1688（site-hub）
 
-预设：`image-search`、`image-compare`、`product`、`supplier`、`media-save`。均需浏览器 **1688 登录态**；图搜类需先打开 `https://www.1688.com/` 以便写入 `_m_h5_tk` 等 mtop cookie。
+预设：`image-search`、`image-compare`、`keyword-search`、`product`、`supplier`、`media-save`。均需浏览器 **1688 登录态**；**图搜**（`image-*`）需先打开 `https://www.1688.com/` 以便写入 `_m_h5_tk` 等 mtop cookie。`keyword-search` 走 `search.1688.com/service/marketOfferResultViewService`，无图、无 mtop 签名；请求带 **`charset=utf8`**（否则易出现 `offerList` 空而 `totalCount` 异常的 degraded 响应）；会先以 `s.1688.com/...keywords={{q}}` 作 Referer，并在停在 `login.taobao.*` 时返回 `wrong_tab` 提示。
 
 ## 与主仓 `site-hub/` 目录的关系
 
@@ -18,6 +18,7 @@
 ```bash
 ziniao --json 1688 product -V offer_id=<在售数字ID>
 ziniao --json 1688 image-search -V image=./your.jpg
+ziniao --json 1688 keyword-search -V q=手机壳 -V begin_page=1 -V page_size=40
 ```
 
 第三方声明见同目录 [NOTICE.md](NOTICE.md)。
