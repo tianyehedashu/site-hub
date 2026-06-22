@@ -1,0 +1,24 @@
+{
+  "name": "卖家精灵·AI 分析当日剩余次数（v3 JSON）",
+  "description": "市场分析报告页脚本调用：`GET /v3/api/ai-analysis/daily-remaining-quota`，返回 `data` 为剩余次数（整数）。与 **v2** `market-research-ai-analysis-v2` 配套使用。**说明**：`/v3/market-analysis` 等路由为 **前端壳**，未发现与「选市场图表」同义的 `v3/api/market-*` 聚合接口；类目图表数据仍以 **v2** `market-research-report-v2` / `keyword-trend-v2` 为准。",
+  "auth": {
+    "type": "cookie",
+    "hint": "登录卖家精灵后任意站内页均可；`Accept: application/json`。"
+  },
+  "navigate_url": "https://www.sellersprite.com/cn/v2/market-research",
+  "mode": "fetch",
+  "url": "https://www.sellersprite.com/v3/api/ai-analysis/daily-remaining-quota",
+  "method": "GET",
+  "headers": {
+    "Accept": "application/json, text/plain, */*",
+    "X-Requested-With": "XMLHttpRequest"
+  },
+  "response_contract": {
+    "parse": "json",
+    "lift": [
+      { "from": "data", "to": "remaining_quota" },
+      { "from": "code", "to": "biz_code" },
+      { "from": "message", "to": "biz_message" }
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "name": "中国银河 · 持仓（同域相对路径）",
+  "description": "先导航到交易/H5 根页，再对当前 origin 下的相对路径发起 fetch（含 Cookie）。用于 DevTools 里看到的是 /trade/... 等同域 API、不便拼完整 URL 的场景。",
+  "auth": {
+    "type": "cookie",
+    "hint": "landing_url 填你抓包时页面地址（与接口同源）；relative_path 填以 / 开头的 path（与抓包 Path 一致）。"
+  },
+  "navigate_url": "{{landing_url}}",
+  "mode": "js",
+  "body": {
+    "relative_path": "{{relative_path}}"
+  },
+  "vars": {
+    "landing_url": {
+      "type": "str",
+      "required": true,
+      "description": "登录后交易或 H5 页面完整 URL（与持仓接口同域）。",
+      "example": "https://example.chinastock.com.cn/trade/"
+    },
+    "relative_path": {
+      "type": "str",
+      "required": true,
+      "description": "以 / 开头的接口路径；若抓包为绝对 URL 请改用 chinastock-galaxy/holdings-url。",
+      "example": "/api/v1/positions"
+    }
+  },
+  "script": "(async () => { const b = typeof __BODY__ === 'string' ? JSON.parse(__BODY__) : __BODY__; const p = String(b.relative_path || ''); if (!p) return { ok: false, error: 'relative_path required' }; const url = p.startsWith('http') ? p : (location.origin + (p.startsWith('/') ? p : '/' + p)); const r = await fetch(url, { credentials: 'include', headers: { Accept: 'application/json, text/plain, */*' } }); const ct = r.headers.get('content-type') || ''; const t = await r.text(); let data; try { data = JSON.parse(t); } catch (_e) { data = t; } return { ok: r.ok, status: r.status, content_type: ct, url, data }; })()"
+}

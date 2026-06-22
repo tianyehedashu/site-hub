@@ -1,0 +1,67 @@
+{
+  "name": "卖家精灵·市场分析-图表数据 report（v2 JSON）",
+  "description": "`market-analysis.js` 中 `loadReport`：`GET /v2/market-research/report/{marketId}/{nodeIdPath}?reportType=…&t=&nrn=&m=`。`reportType` 枚举见前端（如 `PRODUCT`、`SALES`、`PRICE`、`BRAND`、`SELLER`、`SELLER_NATION`、`SHELF_TIME`、`REVIEWS`、`RATING`、`AP_VIDEO`、`SELLER_TYPE`、`RETURN`、`PERFORMANCE` 等）。可选查询：`minPrice`、`step`、`minReview`、`reviewStep`、`sortType`、`asins`；自定义品类加 `c=true` 且 `m` 规则以页面为准。**v3**：无对应 `v3/api` 聚合端点；`/v3/market-analysis` 为壳页面。",
+  "auth": {
+    "type": "cookie",
+    "hint": "先打开目标类目 **市场分析报告页** 或保持已登录；`Accept: application/json` 必带。"
+  },
+  "navigate_url": "https://www.sellersprite.com/cn/v2/market-research",
+  "mode": "fetch",
+  "url": "https://www.sellersprite.com/v2/market-research/report/{{market_id}}/{{node_id_path}}?reportType={{report_type}}&t={{t}}&nrn={{nrn}}&m={{month_table_id}}{{extra_query}}",
+  "method": "GET",
+  "headers": {
+    "Accept": "application/json, text/plain, */*",
+    "X-Requested-With": "XMLHttpRequest"
+  },
+  "vars": {
+    "market_id": {
+      "type": "int",
+      "default": 1,
+      "example": 1
+    },
+    "node_id_path": {
+      "type": "str",
+      "required": true,
+      "description": "nodeIdPath，路径中与前端一致常用 **未编码冒号**",
+      "example": "172282:281407:17854127011:10967801"
+    },
+    "report_type": {
+      "type": "str",
+      "required": true,
+      "description": "图表/报表类型，如 PRICE、PRODUCT、SALES、BRAND、SELLER…",
+      "example": "PRICE"
+    },
+    "t": {
+      "type": "int",
+      "default": 10,
+      "description": "参数 `t`",
+      "example": 10
+    },
+    "nrn": {
+      "type": "int",
+      "default": 6,
+      "description": "参数 `nrn`",
+      "example": 6
+    },
+    "month_table_id": {
+      "type": "str",
+      "default": "210001",
+      "description": "参数 `m`",
+      "example": "210001"
+    },
+    "extra_query": {
+      "type": "str",
+      "default": "",
+      "description": "以 `&` 开头的附加查询，如 `&minPrice=10&step=1`",
+      "example": ""
+    }
+  },
+  "response_contract": {
+    "parse": "json",
+    "lift": [
+      { "from": "data", "to": "series" },
+      { "from": "code", "to": "biz_code" },
+      { "from": "message", "to": "biz_message" }
+    ]
+  }
+}

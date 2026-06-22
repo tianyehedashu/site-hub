@@ -1,0 +1,32 @@
+{
+  "name": "卖家精灵·关键词反查/流量-模块配置（v3 JSON）",
+  "description": "`GET /v3/api/relation/config/{marketId}`，返回表格列配置等（`data.displayColumns` 等）。适用于 **关键词反查**（`/v3/keyword-reverse`）、查流量来源/拓展流量词等同源 `relationUrl` 工具链。",
+  "auth": {
+    "type": "cookie",
+    "hint": "已登录；建议先打开关键词反查或流量分析相关 v3 页。"
+  },
+  "navigate_url": "https://www.sellersprite.com/v3/keyword-reverse",
+  "mode": "fetch",
+  "url": "https://www.sellersprite.com/v3/api/relation/config/{{market_id}}",
+  "method": "GET",
+  "headers": {
+    "Accept": "application/json, text/plain, */*",
+    "X-Requested-With": "XMLHttpRequest"
+  },
+  "vars": {
+    "market_id": {
+      "type": "int",
+      "default": 1,
+      "description": "路径参数 marketId",
+      "example": 1
+    }
+  },
+  "response_contract": {
+    "parse": "json",
+    "lift": [
+      { "from": "data", "to": "config" },
+      { "from": "code", "to": "biz_code" },
+      { "from": "message", "to": "biz_message" }
+    ]
+  }
+}

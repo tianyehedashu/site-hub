@@ -1,0 +1,41 @@
+{
+  "name": "卖家精灵·流量词-变体统计（v3 JSON）",
+  "description": "`POST /v3/api/relation/traffic/variations/stat`，实测最小可用 body：`marketId` + `asin`。用于关键词反查结果区 **变体/其它变体** 相关统计；若网页增加字段请以 Network 为准 fork。",
+  "auth": {
+    "type": "cookie",
+    "hint": "与 `relation-traffic-prepare-v3` 同一登录会话。"
+  },
+  "navigate_url": "https://www.sellersprite.com/v3/keyword-reverse",
+  "mode": "fetch",
+  "url": "https://www.sellersprite.com/v3/api/relation/traffic/variations/stat",
+  "method": "POST",
+  "headers": {
+    "Accept": "application/json, text/plain, */*",
+    "Content-Type": "application/json;charset=UTF-8",
+    "X-Requested-With": "XMLHttpRequest"
+  },
+  "vars": {
+    "market_id": {
+      "type": "int",
+      "default": 1,
+      "example": 1
+    },
+    "asin": {
+      "type": "str",
+      "required": true,
+      "example": "B07P7M5N5Q"
+    }
+  },
+  "body": {
+    "marketId": "{{market_id}}",
+    "asin": "{{asin}}"
+  },
+  "response_contract": {
+    "parse": "json",
+    "lift": [
+      { "from": "data", "to": "variation_stats" },
+      { "from": "code", "to": "biz_code" },
+      { "from": "message", "to": "biz_message" }
+    ]
+  }
+}

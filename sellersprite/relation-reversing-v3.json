@@ -1,0 +1,50 @@
+{
+  "name": "卖家精灵·关键词反查-主列表（v3 JSON）",
+  "description": "对应 **关键词反查** `/v3/keyword-reverse` 主数据：`POST /v3/api/relation/reversing?market={market}`，body 至少含 `asin`、`marketId`（与前端抓包一致）。返回 `data.items` 为流量词列表；**单次可能较慢**，可适当提高 ziniao `timeout`。同链路的准备步骤见 `relation-traffic-prepare-v3`、配置见 `relation-config-v3`；高频词见 `relation-ta-high-frequency-words-v3`；拓展多 ASIN 主表见 `relation-traffic-extend-v3`。**查关键词** 还包括：`keyword-miner`（挖掘）、`keyword-checker-v2-page`（收录 HTML 入口）等。",
+  "auth": {
+    "type": "cookie",
+    "hint": "`ziniao --session chrome-<端口> network fetch -p sellersprite/relation-reversing-v3 -V asin=B0xxxx ...`；先打开关键词反查页。"
+  },
+  "navigate_url": "https://www.sellersprite.com/v3/keyword-reverse",
+  "mode": "fetch",
+  "url": "https://www.sellersprite.com/v3/api/relation/reversing?market={{market}}",
+  "method": "POST",
+  "headers": {
+    "Accept": "application/json, text/plain, */*",
+    "Content-Type": "application/json;charset=UTF-8",
+    "X-Requested-With": "XMLHttpRequest"
+  },
+  "vars": {
+    "market": {
+      "type": "int",
+      "default": 1,
+      "description": "查询参数 `market`（与 body.marketId 在网页中通常同为站点数字 ID）",
+      "example": 1
+    },
+    "asin": {
+      "type": "str",
+      "required": true,
+      "description": "子体 ASIN",
+      "example": "B07P7M5N5Q"
+    },
+    "market_id": {
+      "type": "int",
+      "default": 1,
+      "description": "body.marketId，一般与 `market` 相同",
+      "example": 1
+    }
+  },
+  "body": {
+    "asin": "{{asin}}",
+    "marketId": "{{market_id}}"
+  },
+  "response_contract": {
+    "parse": "json",
+    "lift": [
+      { "from": "data.items", "to": "items" },
+      { "from": "data.total", "to": "total_items" },
+      { "from": "code", "to": "biz_code" },
+      { "from": "message", "to": "biz_message" }
+    ]
+  }
+}

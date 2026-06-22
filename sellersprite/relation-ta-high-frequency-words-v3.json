@@ -1,0 +1,42 @@
+{
+  "name": "卖家精灵·关键词反查-高频词（v3 JSON）",
+  "description": "关键词反查结果侧 **高频词**：`POST /v3/api/relation/ta/high-frequency-words?market={market}`，body 至少含 `asin`（子体）。与 `relation-reversing-v3` 配套。同属 **查关键词** / `relationUrl` 工具链。",
+  "auth": {
+    "type": "cookie",
+    "hint": "已登录；建议先打开 `/v3/keyword-reverse` 再请求。"
+  },
+  "navigate_url": "https://www.sellersprite.com/v3/keyword-reverse",
+  "mode": "fetch",
+  "url": "https://www.sellersprite.com/v3/api/relation/ta/high-frequency-words?market={{market}}",
+  "method": "POST",
+  "headers": {
+    "Accept": "application/json, text/plain, */*",
+    "Content-Type": "application/json;charset=UTF-8",
+    "X-Requested-With": "XMLHttpRequest"
+  },
+  "vars": {
+    "market": {
+      "type": "int",
+      "default": 1,
+      "description": "查询参数 `market`（站点数字 ID，与网页一致）",
+      "example": 1
+    },
+    "asin": {
+      "type": "str",
+      "required": true,
+      "description": "子体 ASIN",
+      "example": "B07P7M5N5Q"
+    }
+  },
+  "body": {
+    "asin": "{{asin}}"
+  },
+  "response_contract": {
+    "parse": "json",
+    "lift": [
+      { "from": "data", "to": "word_weights" },
+      { "from": "code", "to": "biz_code" },
+      { "from": "message", "to": "biz_message" }
+    ]
+  }
+}

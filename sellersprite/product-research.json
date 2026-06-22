@@ -1,0 +1,67 @@
+{
+  "name": "卖家精灵·选产品（v3 product-research）",
+  "description": "对应 **选产品** 页 https://www.sellersprite.com/v3/product-research 。主接口 `POST /v3/api/product-research`（同源 Cookie）。响应含 data.pages / data.items，可做分页合并。与 **查竞品** 页的 `POST /v3/api/competing-lookup`（预设 `competing-lookup-v3`）字段形态相近但业务不同，勿混用 URL。⚠️ 请求体字段与网页左侧筛选器一致，且与开放平台 POST /v1/product/research 相近但不保证同名；**务必**在浏览器 DevTools 里抓一次「开始筛选」后的 Request Payload，用 ziniao site fork 本预设补全/替换 body。勿传空 body 以免默认全量条件导致超大结果与长耗时。",
+  "auth": {
+    "type": "cookie",
+    "hint": "`ziniao --session chrome-<端口> network fetch -p sellersprite/product-research ...`；先登录并在该 Chrome 打开选产品页。筛选若触发验证码/登录，请先人工完成。"
+  },
+  "navigate_url": "https://www.sellersprite.com/v3/product-research",
+  "mode": "fetch",
+  "url": "https://www.sellersprite.com/v3/api/product-research",
+  "method": "POST",
+  "headers": {
+    "Accept": "application/json, text/plain, */*",
+    "Content-Type": "application/json;charset=UTF-8"
+  },
+  "vars": {
+    "market": {
+      "type": "int",
+      "default": 1,
+      "description": "站点 ID（与网页一致；常见同 keyword-miner：1 美国 …）",
+      "example": 1
+    },
+    "month": {
+      "type": "str",
+      "default": "",
+      "description": "月份 yyyyMM；空字符串表示走网页默认「最近30天」逻辑（若接口不接受空，请改为具体月如 202503）",
+      "example": "202503"
+    },
+    "page_num": {
+      "type": "int",
+      "default": 1,
+      "description": "页码，对应 body.pageNum",
+      "example": 1
+    },
+    "page_size": {
+      "type": "int",
+      "default": 20,
+      "description": "每页条数 pageSize；服务端可能上限 20～50，以抓包为准",
+      "example": 20
+    }
+  },
+  "body": {
+    "market": "{{market}}",
+    "month": "{{month}}",
+    "pageNum": "{{page_num}}",
+    "pageSize": "{{page_size}}"
+  },
+  "pagination": {
+    "type": "body_field",
+    "page_field": "pageNum",
+    "total_field": "data.pages",
+    "start": 1,
+    "max_pages": 50,
+    "merge_items_field": "data.items"
+  },
+  "response_contract": {
+    "parse": "json",
+    "lift": [
+      { "from": "data.items", "to": "items" },
+      { "from": "data.pages", "to": "total_pages" },
+      { "from": "data.total", "to": "total_items" },
+      { "from": "data.page", "to": "current_page" },
+      { "from": "code", "to": "biz_code" },
+      { "from": "message", "to": "biz_message" }
+    ]
+  }
+}

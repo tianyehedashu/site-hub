@@ -1,0 +1,63 @@
+{
+  "name": "卖家精灵·市场分析-行业需求关键词趋势（v2 JSON）",
+  "description": "对应 `assets-v2/js/market-analysis.js` 中 `keywordTrendV2`：`GET /v2/market-research/keywordTrendV2/{marketId}/{nodeIdPath}?t=&nrn=&m=`，可选 `&c=true`（自定义品类）、`&x=`（top ASIN 列表）。`m` 为数据表周期 ID（与详情页 `#current-month-option` / 隐藏域 `currentMonth` 一致，常见默认 `210001`）。**须**带 `Accept: application/json`。**v3**：主包未发现等价 `v3/api/market-*` 图表接口。",
+  "auth": {
+    "type": "cookie",
+    "hint": "建议先打开同一类目的 **市场分析报告页**（`market-research-detail-v2`）再请求，Cookie 与统计表上下文一致。"
+  },
+  "navigate_url": "https://www.sellersprite.com/cn/v2/market-research",
+  "mode": "fetch",
+  "url": "https://www.sellersprite.com/v2/market-research/keywordTrendV2/{{market_id}}/{{node_id_path}}?t={{t}}&nrn={{nrn}}&m={{month_table_id}}{{extra_query}}",
+  "method": "GET",
+  "headers": {
+    "Accept": "application/json, text/plain, */*",
+    "X-Requested-With": "XMLHttpRequest"
+  },
+  "vars": {
+    "market_id": {
+      "type": "int",
+      "default": 1,
+      "description": "marketId",
+      "example": 1
+    },
+    "node_id_path": {
+      "type": "str",
+      "required": true,
+      "description": "nodeIdPath；**路径段中冒号一般不编码**（与前端拼接一致）；若 404 可再试 `%3A` 编码形式。",
+      "example": "172282:281407:17854127011:10967801"
+    },
+    "t": {
+      "type": "int",
+      "default": 10,
+      "description": "与脚本参数 `t` 一致（样本头部范围，常见同 topN）",
+      "example": 10
+    },
+    "nrn": {
+      "type": "int",
+      "default": 6,
+      "description": "新品定义月数 `nrn`",
+      "example": 6
+    },
+    "month_table_id": {
+      "type": "str",
+      "default": "210001",
+      "description": "查询参数 `m`：数据表/周期内部 ID；与详情页 `currentMonth` 隐藏值一致。",
+      "example": "210001"
+    },
+    "extra_query": {
+      "type": "str",
+      "default": "",
+      "description": "附加查询串，**须**以 `&` 开头；例：`&c=true` 自定义品类；`&x=B0XXXX` 传 top ASIN。无附加时留空。",
+      "example": ""
+    }
+  },
+  "response_contract": {
+    "parse": "json",
+    "lift": [
+      { "from": "data", "to": "items" },
+      { "from": "code", "to": "biz_code" },
+      { "from": "message", "to": "biz_message" },
+      { "from": "success", "to": "success_flag" }
+    ]
+  }
+}

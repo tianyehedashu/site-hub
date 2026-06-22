@@ -1,0 +1,34 @@
+{
+  "name": "1688 · 关键词搜款（单页）",
+  "description": "Keyword search via search.1688.com marketOfferResultViewService (one page, no image). Cross-border sourcing.",
+  "auth": {
+    "type": "cookie",
+    "hint": "须在已登录的 1688 域标签执行（勿停在 login.taobao.com）；预设会先打开与关键词一致的 s.1688.com 搜索页以对齐 Referer"
+  },
+  "navigate_url": "https://s.1688.com/selloffer/offer_search.htm?keywords={{q}}",
+  "mode": "js",
+  "script": "",
+  "_ziniao_1688_route": "keyword-search",
+  "vars": {
+    "q": {
+      "type": "str",
+      "required": true,
+      "description": "搜索关键词（与 1688 搜索框一致）"
+    },
+    "begin_page": {
+      "type": "int",
+      "default": 1,
+      "description": "结果页码（从 1 起）"
+    },
+    "page_size": {
+      "type": "int",
+      "default": 40,
+      "description": "每页条数（约 10–60，服务端可能向上取整）"
+    }
+  },
+  "body": {
+    "q": "{{q}}",
+    "begin_page": "{{begin_page}}",
+    "page_size": "{{page_size}}"
+  }
+}

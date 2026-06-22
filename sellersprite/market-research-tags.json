@@ -1,0 +1,32 @@
+{
+  "name": "卖家精灵·选市场-标签列表（v2 JSON）",
+  "description": "GET `/v2/market-research/tag-manage/tags`，返回 `{ code, data, message }`。必须在已登录卖家精灵的浏览器标签页执行；需带 `Accept: application/json`（否则服务端按页面视图解析易 500）。多会话：`ziniao --session chrome-<端口> sellersprite market-research-tags ...`",
+  "auth": {
+    "type": "cookie",
+    "hint": "先登录 www.sellersprite.com，并打开任意 v2 选市场或站内页以保证 Cookie 有效。"
+  },
+  "navigate_url": "https://www.sellersprite.com/cn/v2/market-research",
+  "mode": "fetch",
+  "url": "https://www.sellersprite.com/v2/market-research/tag-manage/tags?marketId={{market_id}}",
+  "method": "GET",
+  "headers": {
+    "Accept": "application/json, text/plain, */*",
+    "X-Requested-With": "XMLHttpRequest"
+  },
+  "vars": {
+    "market_id": {
+      "type": "int",
+      "default": 1,
+      "description": "与网页 station 一致：1=美国，3=英国，4=德国…（以站点按钮 data-market-id 为准）",
+      "example": 1
+    }
+  },
+  "response_contract": {
+    "parse": "json",
+    "lift": [
+      { "from": "data", "to": "tags" },
+      { "from": "code", "to": "biz_code" },
+      { "from": "message", "to": "biz_message" }
+    ]
+  }
+}

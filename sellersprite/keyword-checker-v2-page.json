@@ -1,0 +1,15 @@
+{
+  "name": "卖家精灵·关键词收录（v2 页面 HTML）",
+  "description": "**关键词收录** 免费工具：`GET /cn/v2/keyword-checker`（或 `/v2/keyword-checker`，整页 HTML）。站内链接还包含 `/v2/keyword-checker/result/`、`/v2/keyword-checker/download/` 等，**实际 JSON 接口路径因账号/版本可能不同**，请在收录页执行一次查询后于 Network 中抓取 XHR，用 `ziniao site fork` 另建 fetch 预设。归类于 **查关键词**。",
+  "auth": {
+    "type": "cookie",
+    "hint": "已登录；`Accept` 用 HTML 以便落盘解析。"
+  },
+  "navigate_url": "https://www.sellersprite.com/cn/v2/keyword-checker",
+  "mode": "fetch",
+  "url": "https://www.sellersprite.com/cn/v2/keyword-checker",
+  "method": "GET",
+  "headers": {
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+  }
+}

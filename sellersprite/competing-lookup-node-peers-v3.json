@@ -1,0 +1,82 @@
+{
+  "name": "卖家精灵·查竞品-同类目竞品列表",
+  "description": "查竞品页 **第二步**：在已知 `nodeIdPath`（来自 `competing-lookup-asin-resolve-v3` 或网页）时拉 **Traditional Laptops** 等节点下的竞品分页。默认 `keyword` 为空字符串表示仅按节点取数；节点过宽时可用 `-V keyword=gaming laptop` / `rtx 5060 laptop` 等在同节点内收窄。`nodeIdPathEqual` 默认 false（含子类目）。与开放平台 `nodeIdPath` 语义一致。",
+  "auth": {
+    "type": "cookie",
+    "hint": "`ziniao --session chrome-<端口> network fetch -p sellersprite/competing-lookup-node-peers-v3 -V node_id_path=172282:541966:...`"
+  },
+  "navigate_url": "https://www.sellersprite.com/v3/competitor-lookup",
+  "mode": "fetch",
+  "url": "https://www.sellersprite.com/v3/api/competing-lookup",
+  "method": "POST",
+  "headers": {
+    "Accept": "application/json, text/plain, */*",
+    "Content-Type": "application/json;charset=UTF-8"
+  },
+  "vars": {
+    "market": {
+      "type": "int",
+      "default": 1,
+      "description": "站点 ID"
+    },
+    "month": {
+      "type": "str",
+      "default": "202604",
+      "description": "统计月 yyyyMM"
+    },
+    "page_num": {
+      "type": "int",
+      "default": 1,
+      "description": "pageNum"
+    },
+    "page_size": {
+      "type": "int",
+      "default": 20,
+      "description": "pageSize（服务端可能上限 20）"
+    },
+    "keyword": {
+      "type": "str",
+      "default": "",
+      "description": "同节点内的可选关键词收窄；留空表示仅按 nodeIdPath 取数",
+      "example": "gaming laptop"
+    },
+    "node_id_path": {
+      "type": "str",
+      "description": "冒号分隔节点路径，与 resolve 接口返回的 nodeIdPath 一致",
+      "example": "172282:541966:13896617011:565108:13896615011"
+    },
+    "node_id_path_equal": {
+      "type": "bool",
+      "default": false,
+      "description": "true=仅精确节点；false=节点及子类目（与网页默认接近）"
+    }
+  },
+  "body": {
+    "market": "{{market}}",
+    "month": "{{month}}",
+    "pageNum": "{{page_num}}",
+    "pageSize": "{{page_size}}",
+    "keyword": "{{keyword}}",
+    "nodeIdPath": "{{node_id_path}}",
+    "nodeIdPathEqual": "{{node_id_path_equal}}"
+  },
+  "pagination": {
+    "type": "body_field",
+    "page_field": "pageNum",
+    "total_field": "data.pages",
+    "start": 1,
+    "max_pages": 50,
+    "merge_items_field": "data.items"
+  },
+  "response_contract": {
+    "parse": "json",
+    "lift": [
+      { "from": "data.items", "to": "items" },
+      { "from": "data.pages", "to": "total_pages" },
+      { "from": "data.total", "to": "total_items" },
+      { "from": "data.page", "to": "current_page" },
+      { "from": "code", "to": "biz_code" },
+      { "from": "message", "to": "biz_message" }
+    ]
+  }
+}

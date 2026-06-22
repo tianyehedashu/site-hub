@@ -1,0 +1,50 @@
+{
+  "name": "卖家精灵·查竞品-ASIN 解析（nodeIdPath）",
+  "description": "查竞品页 **第一步**：按子体 ASIN 取单行市场数据，重点读 `data.items[0].nodeIdPath` / `nodeLabelPath`，供第二步 `competing-lookup-node-peers-v3` 拉同类目列表。`POST /v3/api/competing-lookup`，body 须含 `asin` 且 **`keyword` 为空字符串**（勿省略该字段；PowerShell 裸传 `-d` 易丢空串，请用 `-V` 或 JSON 文件）。",
+  "auth": {
+    "type": "cookie",
+    "hint": "已登录；建议 `navigate_url` 后 `network fetch`；`ziniao --session chrome-<端口> -p sellersprite/competing-lookup-asin-resolve-v3 -V asin=B0xxxx`"
+  },
+  "navigate_url": "https://www.sellersprite.com/v3/competitor-lookup",
+  "mode": "fetch",
+  "url": "https://www.sellersprite.com/v3/api/competing-lookup",
+  "method": "POST",
+  "headers": {
+    "Accept": "application/json, text/plain, */*",
+    "Content-Type": "application/json;charset=UTF-8"
+  },
+  "vars": {
+    "market": {
+      "type": "int",
+      "default": 1,
+      "description": "站点 ID（与网页一致）"
+    },
+    "month": {
+      "type": "str",
+      "default": "202604",
+      "description": "统计月 yyyyMM"
+    },
+    "asin": {
+      "type": "str",
+      "description": "子体 ASIN",
+      "example": "B0DZZWMB2L"
+    }
+  },
+  "body": {
+    "market": "{{market}}",
+    "month": "{{month}}",
+    "pageNum": 1,
+    "pageSize": 20,
+    "asin": "{{asin}}",
+    "keyword": ""
+  },
+  "response_contract": {
+    "parse": "json",
+    "lift": [
+      { "from": "data.items", "to": "items" },
+      { "from": "data.total", "to": "total_items" },
+      { "from": "code", "to": "biz_code" },
+      { "from": "message", "to": "biz_message" }
+    ]
+  }
+}

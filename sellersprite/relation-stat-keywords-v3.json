@@ -1,0 +1,35 @@
+{
+  "name": "卖家精灵·流量对比-关键词统计（v3 JSON）",
+  "description": "`POST /v3/api/relation/stat-keywords`（前端 `relationUrl` 模块）。对应 **流量对比** `/v3/keyword-comparison` 等页的核心统计之一；简单 body 易 `ERR_GLOBAL_400`。**务必**在仅开流量对比 Tab 时从 Network 复制成功请求的 JSON，用 `ziniao site fork` 覆盖 `body`。可与 `relation-config-v3`、`relation-reversing-v3` 交叉对照字段命名。",
+  "auth": {
+    "type": "cookie",
+    "hint": "先打开 https://www.sellersprite.com/v3/keyword-comparison 并完成一次对比查询。"
+  },
+  "navigate_url": "https://www.sellersprite.com/v3/keyword-comparison",
+  "mode": "fetch",
+  "url": "https://www.sellersprite.com/v3/api/relation/stat-keywords",
+  "method": "POST",
+  "headers": {
+    "Accept": "application/json, text/plain, */*",
+    "Content-Type": "application/json;charset=UTF-8",
+    "X-Requested-With": "XMLHttpRequest"
+  },
+  "vars": {
+    "market_id": {
+      "type": "int",
+      "default": 1,
+      "example": 1
+    }
+  },
+  "body": {
+    "marketId": "{{market_id}}"
+  },
+  "response_contract": {
+    "parse": "json",
+    "lift": [
+      { "from": "data", "to": "stat_result" },
+      { "from": "code", "to": "biz_code" },
+      { "from": "message", "to": "biz_message" }
+    ]
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "name": "卖家精灵·查竞品-导出任务（v3 POST）",
+  "description": "`POST /v3/api/competing-lookup/export`。默认 body 与 `competing-lookup-v3` 最小关键词搜索一致，仅作示例；**真实导出**常与当前筛选器完全一致（含 ASIN 列表、类目、排序等），请在查竞品页点「导出」后从 Network 复制 Payload，用 `ziniao site fork` 覆盖 `body`。",
+  "auth": {
+    "type": "cookie",
+    "hint": "先打开查竞品页并完成至少一次有效筛选。"
+  },
+  "navigate_url": "https://www.sellersprite.com/v3/competitor-lookup",
+  "mode": "fetch",
+  "url": "https://www.sellersprite.com/v3/api/competing-lookup/export",
+  "method": "POST",
+  "headers": {
+    "Accept": "application/json, text/plain, */*",
+    "Content-Type": "application/json;charset=UTF-8",
+    "X-Requested-With": "XMLHttpRequest"
+  },
+  "vars": {
+    "market": { "type": "int", "default": 1, "example": 1 },
+    "month": { "type": "str", "default": "202503", "example": "202503" },
+    "page_num": { "type": "int", "default": 1, "example": 1 },
+    "page_size": { "type": "int", "default": 20, "example": 20 },
+    "keyword": { "type": "str", "default": "pillow", "example": "pillow" }
+  },
+  "body": {
+    "market": "{{market}}",
+    "month": "{{month}}",
+    "pageNum": "{{page_num}}",
+    "pageSize": "{{page_size}}",
+    "keyword": "{{keyword}}"
+  },
+  "response_contract": {
+    "parse": "json",
+    "lift": [
+      { "from": "code", "to": "biz_code" },
+      { "from": "message", "to": "biz_message" },
+      { "from": "data", "to": "export_payload" }
+    ]
+  }
+}

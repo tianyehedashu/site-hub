@@ -1,0 +1,21 @@
+{
+  "name": "中国银河 · 持仓/资产（GET，自定义 URL）",
+  "description": "在活动标签页内对已抓包得到的持仓/资产接口发起 GET，自动携带 Cookie。银河各端真实 path 不同，须自行用 ziniao network list / DevTools 复制完整 URL。",
+  "auth": {
+    "type": "cookie",
+    "hint": "先用 ziniao launch/connect 打开浏览器，完成银河登录并进入能看到持仓的页面；再执行本预设。URL 必须与当前登录态、Cookie 作用域匹配。"
+  },
+  "mode": "fetch",
+  "method": "GET",
+  "url": "{{holdings_url}}",
+  "headers": {
+    "Accept": "application/json, text/plain, */*"
+  },
+  "vars": {
+    "holdings_url": {
+      "type": "str",
+      "required": true,
+      "description": "Network 里返回持仓/资金股份的完整 HTTPS URL（含 query）。"
+    }
+  }
+}

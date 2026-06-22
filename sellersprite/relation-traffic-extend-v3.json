@@ -1,0 +1,43 @@
+{
+  "name": "卖家精灵·拓展流量词-主表（v3 JSON）",
+  "description": "**拓展流量词** 页 `/v3/traffic/extend` 主数据：`POST /v3/api/relation/traffic`（前端 `cancel:\"relation\"`）。body 与 **多 ASIN 矩阵** 筛选强相关，字段多且随版本变化；仅 `marketId`+`asins` 等简单组合易 `ERR_GLOBAL_400`。**务必**在仅保留本工具 Tab 时，从 Network 复制一次成功搜索的 Request Payload，用 `ziniao site fork` 替换下方 `body`。同前缀还有：`relation-traffic-prepare-v3`、`relation-multi-stat-traffics-v3`。",
+  "auth": {
+    "type": "cookie",
+    "hint": "先登录并打开 https://www.sellersprite.com/v3/traffic/extend 。"
+  },
+  "navigate_url": "https://www.sellersprite.com/v3/traffic/extend",
+  "mode": "fetch",
+  "url": "https://www.sellersprite.com/v3/api/relation/traffic",
+  "method": "POST",
+  "headers": {
+    "Accept": "application/json, text/plain, */*",
+    "Content-Type": "application/json;charset=UTF-8",
+    "X-Requested-With": "XMLHttpRequest"
+  },
+  "vars": {
+    "market_id": {
+      "type": "int",
+      "default": 1,
+      "description": "示例 body 用；fork 后通常与网页 `marketId` 一致",
+      "example": 1
+    },
+    "asin_sample": {
+      "type": "str",
+      "default": "B07P7M5N5Q",
+      "description": "示例 ASIN；多 ASIN 请 fork 后改为 `asins` 数组等真实结构",
+      "example": "B07P7M5N5Q"
+    }
+  },
+  "body": {
+    "marketId": "{{market_id}}",
+    "asins": ["{{asin_sample}}"]
+  },
+  "response_contract": {
+    "parse": "json",
+    "lift": [
+      { "from": "data", "to": "payload" },
+      { "from": "code", "to": "biz_code" },
+      { "from": "message", "to": "biz_message" }
+    ]
+  }
+}

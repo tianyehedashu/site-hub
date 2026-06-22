@@ -1,0 +1,74 @@
+{
+  "name": "卖家精灵·查竞品（v3 competing-lookup）",
+  "description": "对应 **查竞品** 页 `https://www.sellersprite.com/v3/competitor-lookup`。主列表接口 `POST /v3/api/competing-lookup`（与 `product-research` 请求体 **同型**：`market`、`month`、`pageNum`、`pageSize` 等；关键词模式至少需 `keyword`）。按 ASIN/品牌/卖家/类目筛选时字段更多，**务必**在仅保留本工具 Tab 时从 Network 复制「搜索」请求的 Request Payload，用 `ziniao site fork` 扩展本预设。配套：`competing-lookup-query-quota-v3`、`competing-lookup-export-v3`、`competitor-lookup-nodes-v2`。",
+  "auth": {
+    "type": "cookie",
+    "hint": "`ziniao --session chrome-<端口> network fetch -p sellersprite/competing-lookup-v3 ...`；先登录并打开查竞品页。"
+  },
+  "navigate_url": "https://www.sellersprite.com/v3/competitor-lookup",
+  "mode": "fetch",
+  "url": "https://www.sellersprite.com/v3/api/competing-lookup",
+  "method": "POST",
+  "headers": {
+    "Accept": "application/json, text/plain, */*",
+    "Content-Type": "application/json;charset=UTF-8"
+  },
+  "vars": {
+    "market": {
+      "type": "int",
+      "default": 1,
+      "description": "站点 ID（与网页 market 一致）",
+      "example": 1
+    },
+    "month": {
+      "type": "str",
+      "default": "202503",
+      "description": "统计月 yyyyMM；与网页月份选择一致",
+      "example": "202503"
+    },
+    "page_num": {
+      "type": "int",
+      "default": 1,
+      "description": "pageNum",
+      "example": 1
+    },
+    "page_size": {
+      "type": "int",
+      "default": 20,
+      "description": "pageSize",
+      "example": 20
+    },
+    "keyword": {
+      "type": "str",
+      "default": "pillow",
+      "description": "关键词模式下的主关键词；走 ASIN/品牌/卖家等模式时请 fork 后替换整个 body",
+      "example": "pillow"
+    }
+  },
+  "body": {
+    "market": "{{market}}",
+    "month": "{{month}}",
+    "pageNum": "{{page_num}}",
+    "pageSize": "{{page_size}}",
+    "keyword": "{{keyword}}"
+  },
+  "pagination": {
+    "type": "body_field",
+    "page_field": "pageNum",
+    "total_field": "data.pages",
+    "start": 1,
+    "max_pages": 50,
+    "merge_items_field": "data.items"
+  },
+  "response_contract": {
+    "parse": "json",
+    "lift": [
+      { "from": "data.items", "to": "items" },
+      { "from": "data.pages", "to": "total_pages" },
+      { "from": "data.total", "to": "total_items" },
+      { "from": "data.page", "to": "current_page" },
+      { "from": "code", "to": "biz_code" },
+      { "from": "message", "to": "biz_message" }
+    ]
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "name": "卖家精灵·选市场-表单提交（v2 HTML）",
+  "description": "对应网页 **选市场** `https://www.sellersprite.com/cn/v2/market-research`：主筛选为 **传统表单 POST**（`application/x-www-form-urlencoded`），响应为 **整页 HTML**（非 JSON），适合 `-o page.html` 落盘后再解析表格。与 `POST /v3/api/keyword-miner` 类 JSON 接口不同。`node_id_path` 必须 **已 URL 编码**（类目 ID 中的 `:` → `%3A`，如 `172282%3A281407`）。类目关键词模式与导航模式互斥：本预设按 **nodeIdPath 导航** 传参，`departmentKeyword` 置空。若需关键词搜索模式，请 fork 后改 body 并清空 `nodeIdPath`。",
+  "auth": {
+    "type": "cookie",
+    "hint": "使用 `ziniao --session chrome-<cdp_port> ...`；先登录卖家精灵。免费/未开通权限时可能为空白或跳转提示页。"
+  },
+  "navigate_url": "https://www.sellersprite.com/cn/v2/market-research",
+  "mode": "fetch",
+  "url": "https://www.sellersprite.com/cn/v2/market-research",
+  "method": "POST",
+  "headers": {
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
+  },
+  "vars": {
+    "market_id": {
+      "type": "int",
+      "default": 1,
+      "description": "站点 ID，与表单 `marketId` 一致",
+      "example": 1
+    },
+    "node_id_path": {
+      "type": "str",
+      "required": true,
+      "description": "已 URL 编码的 nodeIdPath（示例类目 Electronics:… 的路径 ID：`172282%3A281407`）",
+      "example": "172282%3A281407"
+    },
+    "month_name": {
+      "type": "str",
+      "default": "bsr_sales_nearly",
+      "description": "月份/统计周期，与网页 `monthName` 一致，如 `bsr_sales_monthly_202603`",
+      "example": "bsr_sales_nearly"
+    },
+    "tab": {
+      "type": "int",
+      "default": 1,
+      "description": "标签页：1=筛选结果（网页默认）",
+      "example": 1
+    },
+    "sample_number": {
+      "type": "int",
+      "default": 1,
+      "description": "对应隐藏域 sampleNumber（网页默认 1）",
+      "example": 1
+    },
+    "topn": {
+      "type": "int",
+      "default": 10,
+      "description": "头部 Listing 数 hidden `topn`，常与 `top_n_select` 一致",
+      "example": 10
+    },
+    "new_release_num": {
+      "type": "int",
+      "default": 6,
+      "description": "新品定义月数 hidden `newReleaseNum`",
+      "example": 6
+    },
+    "new_release_num_select": {
+      "type": "int",
+      "default": 6,
+      "description": "与 `select[name=newReleaseNumSelect]` 一致",
+      "example": 6
+    },
+    "top_n_select": {
+      "type": "int",
+      "default": 10,
+      "description": "与 `select[name=topNSelect]` 一致",
+      "example": 10
+    },
+    "order_field": {
+      "type": "str",
+      "default": "total_sales",
+      "description": "排序字段 `order.field`",
+      "example": "total_sales"
+    },
+    "order_desc": {
+      "type": "str",
+      "default": "true",
+      "description": "是否降序 `order.desc`：true/false",
+      "example": "true"
+    }
+  },
+  "body": "marketId={{market_id}}&nodeIdPath={{node_id_path}}&sampleNumber={{sample_number}}&topn={{topn}}&newReleaseNum={{new_release_num}}&order.field={{order_field}}&order.desc={{order_desc}}&tab={{tab}}&monthName={{month_name}}&newReleaseNumSelect={{new_release_num_select}}&topNSelect={{top_n_select}}&departmentKeyword="
+}

@@ -1,0 +1,37 @@
+{
+  "name": "卖家精灵·选市场-刷新节点 analyze（v2 JSON，两参）",
+  "description": "结果列表「刷新该类目」：`$.getJSON('/v2/market-research/analyze/' + market + '/' + node)` 当 `data-month` 为 `210001` 时 **仅两路径段**（第三段省略）。用于触发服务端重算后由前端再提交筛选表单。`market` 在表格行为 **数字站点 ID**（如 `1`），非 `US`。返回体多为 `{ code:\"OK\" }`。",
+  "auth": {
+    "type": "cookie",
+    "hint": "需已登录；建议从选市场/报告相关页发起。"
+  },
+  "navigate_url": "https://www.sellersprite.com/cn/v2/market-research",
+  "mode": "fetch",
+  "url": "https://www.sellersprite.com/v2/market-research/analyze/{{market_id}}/{{node_id_path}}",
+  "method": "GET",
+  "headers": {
+    "Accept": "application/json, text/plain, */*",
+    "X-Requested-With": "XMLHttpRequest"
+  },
+  "vars": {
+    "market_id": {
+      "type": "int",
+      "default": 1,
+      "description": "数字 marketId，与 `data-market` 一致",
+      "example": 1
+    },
+    "node_id_path": {
+      "type": "str",
+      "required": true,
+      "description": "nodeIdPath，与 `data-node` 一致，常用 **冒号未编码**",
+      "example": "172282:281407:17854127011:10967801"
+    }
+  },
+  "response_contract": {
+    "parse": "json",
+    "lift": [
+      { "from": "code", "to": "biz_code" },
+      { "from": "message", "to": "biz_message" }
+    ]
+  }
+}

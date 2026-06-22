@@ -1,0 +1,24 @@
+{
+  "name": "卖家精灵·查竞品-剩余查询次数（v3 JSON）",
+  "description": "`GET /v3/api/competing-lookup/query-quota`，返回 `data` 为剩余次数（整数）。与 `competing-lookup-v3` 配套。",
+  "auth": {
+    "type": "cookie",
+    "hint": "已登录卖家精灵即可；建议与查竞品同一 Chrome 会话。"
+  },
+  "navigate_url": "https://www.sellersprite.com/v3/competitor-lookup",
+  "mode": "fetch",
+  "url": "https://www.sellersprite.com/v3/api/competing-lookup/query-quota",
+  "method": "GET",
+  "headers": {
+    "Accept": "application/json, text/plain, */*",
+    "X-Requested-With": "XMLHttpRequest"
+  },
+  "response_contract": {
+    "parse": "json",
+    "lift": [
+      { "from": "data", "to": "remaining_quota" },
+      { "from": "code", "to": "biz_code" },
+      { "from": "message", "to": "biz_message" }
+    ]
+  }
+}

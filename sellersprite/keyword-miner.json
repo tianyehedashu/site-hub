@@ -1,0 +1,113 @@
+{
+  "name": "卖家精灵·关键词挖掘（v3 网页 API）",
+  "description": "归类于站内 **查关键词**：**关键词挖掘** 页 `POST /v3/api/keyword-miner`。在已登录 www.sellersprite.com 的标签页内拉取拓展词结果。翻页请用 `-V page_num=N`（响应体无稳定 `data.pages` 总页数字段，已移除 declarative `--all`，避免总页数被误判为 1）。**反查/流量**：`relation-reversing-v3`、`relation-traffic-prepare-v3`、`relation-ta-high-frequency-words-v3`；**拓展流量词主表**：`relation-traffic-extend-v3`（须 fork body）；**流量对比**：`relation-stat-keywords-v3`（须 fork）；**收录（v2 页）**：`keyword-checker-v2-page`。多会话时务必显式指定 Chrome：`ziniao --session chrome-<端口> ...`（全局参数在子命令前）。",
+  "auth": {
+    "type": "cookie",
+    "hint": "使用 `ziniao launch` 起的 Google Chrome 时，请固定会话：`ziniao --session chrome-<cdp_port> network fetch ...`（可用 `ziniao --json session list` 查看 session_id）。先在**该 Chrome 标签页**登录卖家精灵并打开 /v3/keyword-miner；不要用错成 open-store 的 ziniao 会话，否则 Cookie 不对。游客/失效登录会返回 ERR_GLOBAL_SESSION_EXPIRED。"
+  },
+  "navigate_url": "https://www.sellersprite.com/v3/keyword-miner",
+  "mode": "fetch",
+  "url": "https://www.sellersprite.com/v3/api/keyword-miner",
+  "method": "POST",
+  "headers": {
+    "Accept": "application/json, text/plain, */*",
+    "Content-Type": "application/json;charset=UTF-8"
+  },
+  "vars": {
+    "keyword": {
+      "type": "str",
+      "required": true,
+      "description": "种子关键词（与网页「关键词挖掘」输入框一致）",
+      "example": "绿茶"
+    },
+    "market": {
+      "type": "int",
+      "default": 1,
+      "description": "站点/市场 ID（与网页 marketId 一致；常见：1=美国，2=英国，3=德国，4=法国，5=日本，6=西班牙，7=意大利，8=加拿大，9=印度；以官网前端为准）",
+      "example": 1
+    },
+    "page_size": {
+      "type": "int",
+      "default": 50,
+      "description": "每页条数（网页端常用 50）",
+      "example": 50
+    },
+    "history_date": {
+      "type": "str",
+      "default": "",
+      "description": "历史月份，空字符串表示「最近30天」等网页默认；若需指定可为 yyyyMM，如 202503",
+      "example": ""
+    },
+    "order_by": {
+      "type": "int",
+      "default": 21,
+      "description": "排序字段 ID（与网页表格排序一致；默认 21 为抓包所见，若结果异常请在网页切换排序后 network 里对照 orderBy）",
+      "example": 21
+    },
+    "filter_root_word": {
+      "type": "int",
+      "default": 0,
+      "description": "词根过滤：0=包含所有，1=仅包含词根（与网页选项一致）",
+      "example": 0
+    },
+    "match_type": {
+      "type": "int",
+      "default": 0,
+      "description": "匹配方式：0=广泛匹配，1=词组匹配等（与网页选项一致；具体枚举以官网为准）",
+      "example": 0
+    },
+    "keyword_bid_match_type": {
+      "type": "str",
+      "default": "exact",
+      "description": "PPC 竞价匹配类型（抓包为 exact；若网页支持短语等可改为 phrase/broad 等，以官网为准）",
+      "example": "exact"
+    },
+    "page_num": {
+      "type": "int",
+      "default": 1,
+      "description": "页码，对应请求体 pageNum（从 1 开始）。示例：`-V page_num=2` 拉第 2 页。勿用变量名 `page`，以免与 CLI 内部分页占位符混淆。"
+    }
+  },
+  "body": {
+    "keyword": "{{keyword}}",
+    "market": "{{market}}",
+    "pageNum": "{{page_num}}",
+    "pageSize": "{{page_size}}",
+    "historyDate": "{{history_date}}",
+    "orderBy": "{{order_by}}",
+    "desc": true,
+    "filterRootWord": "{{filter_root_word}}",
+    "matchType": "{{match_type}}",
+    "amazonChoice": false,
+    "keywordBidMatchType": "{{keyword_bid_match_type}}"
+  },
+  "response_contract": {
+    "parse": "json",
+    "lift": [
+      {
+        "from": "data.items",
+        "to": "items"
+      },
+      {
+        "from": "data.pages",
+        "to": "total_pages"
+      },
+      {
+        "from": "data.total",
+        "to": "total_items"
+      },
+      {
+        "from": "data.page",
+        "to": "current_page"
+      },
+      {
+        "from": "code",
+        "to": "biz_code"
+      },
+      {
+        "from": "message",
+        "to": "biz_message"
+      }
+    ]
+  }
+}

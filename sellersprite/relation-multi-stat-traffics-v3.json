@@ -1,0 +1,41 @@
+{
+  "name": "卖家精灵·流量分析-多 ASIN 统计（v3 JSON）",
+  "description": "`POST /v3/api/relation/multi-stat-traffics`（前端模块 `5a29`）。用于 **拓展流量词 / 流量分布** 等场景下的批量统计；body 结构请以当前页 Network 为准 **fork** 本预设。与 `relation-traffic-extend-v3` 同属 `relationUrl`。",
+  "auth": {
+    "type": "cookie",
+    "hint": "已登录；建议从 `/v3/traffic/extend` 或 `/v3/reversing` 相关页发起。"
+  },
+  "navigate_url": "https://www.sellersprite.com/v3/traffic/extend",
+  "mode": "fetch",
+  "url": "https://www.sellersprite.com/v3/api/relation/multi-stat-traffics",
+  "method": "POST",
+  "headers": {
+    "Accept": "application/json, text/plain, */*",
+    "Content-Type": "application/json;charset=UTF-8",
+    "X-Requested-With": "XMLHttpRequest"
+  },
+  "vars": {
+    "market_id": {
+      "type": "int",
+      "default": 1,
+      "example": 1
+    },
+    "asin": {
+      "type": "str",
+      "default": "B07P7M5N5Q",
+      "example": "B07P7M5N5Q"
+    }
+  },
+  "body": {
+    "marketId": "{{market_id}}",
+    "asins": ["{{asin}}"]
+  },
+  "response_contract": {
+    "parse": "json",
+    "lift": [
+      { "from": "data", "to": "stats" },
+      { "from": "code", "to": "biz_code" },
+      { "from": "message", "to": "biz_message" }
+    ]
+  }
+}

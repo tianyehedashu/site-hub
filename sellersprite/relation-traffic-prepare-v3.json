@@ -1,0 +1,43 @@
+{
+  "name": "卖家精灵·流量词-准备/刷新任务（v3 JSON）",
+  "description": "`POST /v3/api/relation/traffic/prepare`，请求体至少含 `marketId`、`asin`（服务端提示「asin不能为空」）。用于 **关键词反查 / 查流量来源** 等前端在拉主表前触发的准备步骤；完整流程可结合 `relation-reversing-v3`。",
+  "auth": {
+    "type": "cookie",
+    "hint": "仅开与反查流量词相关的 Tab 再抓 Network，避免混入其它工具请求。"
+  },
+  "navigate_url": "https://www.sellersprite.com/v3/keyword-reverse",
+  "mode": "fetch",
+  "url": "https://www.sellersprite.com/v3/api/relation/traffic/prepare",
+  "method": "POST",
+  "headers": {
+    "Accept": "application/json, text/plain, */*",
+    "Content-Type": "application/json;charset=UTF-8",
+    "X-Requested-With": "XMLHttpRequest"
+  },
+  "vars": {
+    "market_id": {
+      "type": "int",
+      "default": 1,
+      "description": "body.marketId",
+      "example": 1
+    },
+    "asin": {
+      "type": "str",
+      "required": true,
+      "description": "子体 ASIN（与网页一致）",
+      "example": "B07P7M5N5Q"
+    }
+  },
+  "body": {
+    "marketId": "{{market_id}}",
+    "asin": "{{asin}}"
+  },
+  "response_contract": {
+    "parse": "json",
+    "lift": [
+      { "from": "data", "to": "prepare_result" },
+      { "from": "code", "to": "biz_code" },
+      { "from": "message", "to": "biz_message" }
+    ]
+  }
+}

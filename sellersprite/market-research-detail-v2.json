@@ -1,0 +1,47 @@
+{
+  "name": "卖家精灵·市场分析报告页（v2 HTML）",
+  "description": "选市场结果表中 **「市场分析」** 链接打开的 **整页 HTML**（标题含「市场分析报告」）。URL 形态：`GET /v2/market-research/{marketId}/{nodeIdPath}?topN=&newReleaseNum=&currentMonth=`。`node_id_path` 建议使用 **URL 编码**（`:`→`%3A`），与网页 href 一致。图表 JSON 请用同目录 `market-research-report-v2`、`market-research-keyword-trend-v2`。**v3**：`/v3/market-analysis` 等为壳路由，无等价整页 JSON；AI 相关见 `ai-analysis-daily-quota-v3`、`market-research-ai-analysis-v2`。",
+  "auth": {
+    "type": "cookie",
+    "hint": "`ziniao --session chrome-<端口>`；先登录。未开通/无权限可能跳转提示。"
+  },
+  "navigate_url": "https://www.sellersprite.com/cn/v2/market-research",
+  "mode": "fetch",
+  "url": "https://www.sellersprite.com/v2/market-research/{{market_id}}/{{node_id_path}}?topN={{top_n}}&newReleaseNum={{new_release_num}}&currentMonth={{current_month}}",
+  "method": "GET",
+  "headers": {
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+  },
+  "vars": {
+    "market_id": {
+      "type": "int",
+      "default": 1,
+      "description": "站点数字 ID（与结果页 badge 链接中第一段一致）",
+      "example": 1
+    },
+    "node_id_path": {
+      "type": "str",
+      "required": true,
+      "description": "nodeIdPath，**建议 URL 编码**（如 `172282%3A281407%3A17854127011%3A10967801`）；未编码的冒号路径在多数环境下也可通。",
+      "example": "172282%3A281407%3A17854127011%3A10967801"
+    },
+    "top_n": {
+      "type": "int",
+      "default": 10,
+      "description": "与详情表单 `topN` 一致",
+      "example": 10
+    },
+    "new_release_num": {
+      "type": "int",
+      "default": 6,
+      "description": "与详情表单 `newReleaseNum` 一致",
+      "example": 6
+    },
+    "current_month": {
+      "type": "str",
+      "default": "",
+      "description": "与查询串 `currentMonth` 一致；空串与网页 `currentMonth=` 行为一致。非空时多为数据表 ID（如 `210001`），以详情页隐藏域为准。",
+      "example": ""
+    }
+  }
+}

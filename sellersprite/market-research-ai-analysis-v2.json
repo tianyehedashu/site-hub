@@ -1,0 +1,94 @@
+{
+  "name": "卖家精灵·市场分析-AI 解读任务提交（v2→v3 JSON）",
+  "description": "市场分析报告页「AI 解读」：`POST /v2/market-research/report/ai-analysis/{marketId}/{nodeIdPath}`，`Content-Type: application/x-www-form-urlencoded`，字段与网页脚本一致：`t,nrn,m,c,minPrice,step,x,minReview,reviewStep`。成功返回 `data.taskId`，前端再打开 `/v3/ai-report?id=…`。**v3** 侧配额：`ai-analysis-daily-quota-v3`。",
+  "auth": {
+    "type": "cookie",
+    "hint": "需已登录且有 AI 解读权限；建议先打开对应 **市场分析报告页**。"
+  },
+  "navigate_url": "https://www.sellersprite.com/cn/v2/market-research",
+  "mode": "fetch",
+  "url": "https://www.sellersprite.com/v2/market-research/report/ai-analysis/{{market_id}}/{{node_id_path}}",
+  "method": "POST",
+  "headers": {
+    "Accept": "application/json, text/plain, */*",
+    "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+    "X-Requested-With": "XMLHttpRequest"
+  },
+  "vars": {
+    "market_id": {
+      "type": "int",
+      "default": 1,
+      "example": 1
+    },
+    "node_id_path": {
+      "type": "str",
+      "required": true,
+      "description": "路径中使用冒号分隔 ID，与页面脚本一致",
+      "example": "172282:281407:17854127011:10967801"
+    },
+    "t": {
+      "type": "str",
+      "default": "10",
+      "description": "对应脚本 `t`（常为 topN 字符串）",
+      "example": "10"
+    },
+    "nrn": {
+      "type": "str",
+      "default": "6",
+      "description": "新品定义 `nrn`",
+      "example": "6"
+    },
+    "m": {
+      "type": "str",
+      "default": "210001",
+      "description": "当前月/表 `m`",
+      "example": "210001"
+    },
+    "c": {
+      "type": "str",
+      "default": "",
+      "description": "自定义品类标记 `c`，可为空",
+      "example": ""
+    },
+    "min_price": {
+      "type": "str",
+      "default": "",
+      "description": "`minPrice`",
+      "example": ""
+    },
+    "step": {
+      "type": "str",
+      "default": "",
+      "description": "`step`",
+      "example": ""
+    },
+    "x": {
+      "type": "str",
+      "default": "",
+      "description": "`x`（top ASIN 等）",
+      "example": ""
+    },
+    "min_review": {
+      "type": "str",
+      "default": "",
+      "description": "`minReview`",
+      "example": ""
+    },
+    "review_step": {
+      "type": "str",
+      "default": "",
+      "description": "`reviewStep`",
+      "example": ""
+    }
+  },
+  "body": "t={{t}}&nrn={{nrn}}&m={{m}}&c={{c}}&minPrice={{min_price}}&step={{step}}&x={{x}}&minReview={{min_review}}&reviewStep={{review_step}}",
+  "response_contract": {
+    "parse": "json",
+    "lift": [
+      { "from": "data.taskId", "to": "ai_task_id" },
+      { "from": "data.taskStatus", "to": "task_status" },
+      { "from": "code", "to": "biz_code" },
+      { "from": "message", "to": "biz_message" }
+    ]
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "name": "卖家精灵·选市场-刷新节点 analyze（v2 JSON，三参）",
+  "description": "当 `data-month != 210001` 时，`$.getJSON('/v2/market-research/analyze/' + market + '/' + node + '/' + m)` **三路径段**；`m` 为 **数据表/周期数值 ID**（整数），非 `bsr_sales_nearly` 字符串。具体取值请在 **已展开结果行** 的刷新链接上查看 `data-url` / `data-month` 后填入 `month_table_id`。",
+  "auth": {
+    "type": "cookie",
+    "hint": "与 `market-research-analyze-v2` 相同。"
+  },
+  "navigate_url": "https://www.sellersprite.com/cn/v2/market-research",
+  "mode": "fetch",
+  "url": "https://www.sellersprite.com/v2/market-research/analyze/{{market_id}}/{{node_id_path}}/{{month_table_id}}",
+  "method": "GET",
+  "headers": {
+    "Accept": "application/json, text/plain, */*",
+    "X-Requested-With": "XMLHttpRequest"
+  },
+  "vars": {
+    "market_id": {
+      "type": "int",
+      "default": 1,
+      "example": 1
+    },
+    "node_id_path": {
+      "type": "str",
+      "required": true,
+      "example": "172282:281407:17854127011:10967801"
+    },
+    "month_table_id": {
+      "type": "int",
+      "required": true,
+      "description": "第三段整数，与 `data-month`（非 210001）一致",
+      "example": 123456
+    }
+  },
+  "response_contract": {
+    "parse": "json",
+    "lift": [
+      { "from": "code", "to": "biz_code" },
+      { "from": "message", "to": "biz_message" }
+    ]
+  }
+}

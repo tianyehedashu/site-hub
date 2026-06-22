@@ -1,0 +1,31 @@
+{
+  "name": "卖家精灵·查竞品-类目树（v2 JSON）",
+  "description": "查竞品页左侧类目：`GET /v2/competitor-lookup/nodes?marketId=`，返回类目树（`items` 等）。**v3** 列表数据走 `competing-lookup-v3`。",
+  "auth": {
+    "type": "cookie",
+    "hint": "已登录；可自 competitor-lookup 页发起。"
+  },
+  "navigate_url": "https://www.sellersprite.com/v3/competitor-lookup",
+  "mode": "fetch",
+  "url": "https://www.sellersprite.com/v2/competitor-lookup/nodes?marketId={{market_id}}",
+  "method": "GET",
+  "headers": {
+    "Accept": "application/json, text/plain, */*",
+    "X-Requested-With": "XMLHttpRequest"
+  },
+  "vars": {
+    "market_id": {
+      "type": "int",
+      "default": 1,
+      "description": "与网页 marketId 一致",
+      "example": 1
+    }
+  },
+  "response_contract": {
+    "parse": "json",
+    "lift": [
+      { "from": "items", "to": "nodes" },
+      { "from": "code", "to": "biz_code" }
+    ]
+  }
+}

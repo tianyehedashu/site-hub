@@ -1,0 +1,28 @@
+{
+  "name": "中国银河 · 持仓/资产（POST，自定义 URL + JSON）",
+  "description": "对抓包得到的 POST 接口发起 JSON 请求（页面内 fetch，带 Cookie）。body 与银河各端实际字段一致即可；若接口要求 CSRF/自定义头，请 ziniao site fork 本预设后增加 header_inject。",
+  "auth": {
+    "type": "cookie",
+    "hint": "登录后使用；post_json 须为合法 JSON 字符串（与 Request Payload 一致）。"
+  },
+  "mode": "fetch",
+  "method": "POST",
+  "url": "{{holdings_url}}",
+  "headers": {
+    "Accept": "application/json, text/plain, */*",
+    "Content-Type": "application/json"
+  },
+  "body": "{{post_json}}",
+  "vars": {
+    "holdings_url": {
+      "type": "str",
+      "required": true,
+      "description": "POST 接口完整 HTTPS URL。"
+    },
+    "post_json": {
+      "type": "str",
+      "required": true,
+      "description": "JSON 字符串，例如 {\"pageNo\":1,\"pageSize\":50}（按抓包填写）。"
+    }
+  }
+}
