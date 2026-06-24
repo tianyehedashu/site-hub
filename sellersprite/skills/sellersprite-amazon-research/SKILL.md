@@ -16,6 +16,30 @@ allowed-tools: Bash(ziniao:*)
 2. 多实例时显式指定：`ziniao --session chrome-<端口> sellersprite <action> ...`（`session list` 查端口）。
 3. 带复杂筛选的 POST（`product-research`、`competing-lookup-v3`、`relation-traffic-extend-v3` 等）**body 须与网页抓包一致**；默认 body 仅为最小示例，用 `ziniao site fork sellersprite/<action>` 扩展。
 
+## ⚠️ 重要：站点选择限制
+
+**所有 API 请求返回的数据完全取决于浏览器网页上当前选中的站点**，而非请求参数中的 `market` 值。
+
+这意味着：
+- ❌ 即使传 `market=2`（英国），如果网页上选的是美国，返回的仍是美国数据
+- ❌ 即使传 `market=6`（日本），如果网页上选的是美国，返回的仍是美国数据
+
+**正确操作流程**：
+1. 执行任何查询前，**先在网页上手动切换到目标站点**（如英国）
+2. 然后再执行 ziniao 命令
+
+**示例**：
+```bash
+# ❌ 错误：网页上仍是美国站点，返回美国数据
+ziniao --session chrome-9222 --json sellersprite product-research -V market=2
+
+# ✅ 正确：先在网页切换到英国，再执行查询
+# 1. 打开网页：https://www.sellersprite.com/v3/product-research
+# 2. 手动选择「英国」站点
+# 3. 然后执行：
+ziniao --session chrome-9222 --json sellersprite product-research -V market=2
+```
+
 ## 能力地图
 
 | 业务 | 代表 action | 说明 |
@@ -81,6 +105,7 @@ ziniao site update site-hub               # 更新预设
 | 空 body 超大结果 / 超时 | POST 预设勿传空 body；fork 后只保留必要筛选字段 |
 | 验证码 | 人工完成后再执行；勿自动化绕过 |
 | 连错 Chrome | `session list` + `--session` |
+| **返回数据站点不对** | **网页当前选中的站点与目标不符；先在网页上手动切换站点** |
 
 ## 与开放平台 API 的关系
 
